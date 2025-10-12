@@ -2,12 +2,31 @@
   width: 402px;
   min-height: 100vh;
   background-color: #F5F5F5;
+  margin: 0 auto; /* Center everything */
 }
 
 .header {
-  position: fixed;
-  width: 402px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
   z-index: 100;
+  background-color: #F5F5F5;
+}
+
+.blue-bar {
+  background-color: #0069AD;
+  height: 62px;
+  width: 100%;
+}
+
+.white-bar {
+  background-color: #FFFFFF;
+  height: 62px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .header-bar {
@@ -18,36 +37,94 @@
   justify-content: center;
 }
 
+.logo-bar {
+  background-color: #0069AD;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .logo {
-  height: 26px;
+  height: 26px; /* Adjusted logo size for white bar */
 }
 
 .user-bar {
-  background-color: #FFFFFF;
-  height: 58px;
+  background: #fff;
+  margin: 35px auto 0; /* Increased from 20px to 35px */
+  position: fixed;
+  top: 124px; /* Adjust this value based on your header height (blue-bar + white-bar) */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 101;
+  width: 324px; /* Reduced from 360px (90% of original) */
+  height: 44px; /* Reduced from 72px (90% of original) */
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  justify-content: space-between;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 11px 18px; /* Reduced from 12px 20px (90% of original) */
+  gap: 16px;
+}
+
+.user-photo {
+  width: 43px; /* Reduced from 48px */
+  height: 43px; /* Reduced from 48px */
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #eee;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.welcome {
+  color: #1976d2;
+  font-size: 16px;
+  font-weight: 500;
+  font-style: medium;
 }
 
 .username {
-  font-weight: bold;
+  color: #222;
+  font-size: 16px;
+  font-weight: 400;
+  font-style: normal;
 }
 
 .add-button {
+  width: 40px; /* Reduced from 44px */
+  height: 40px; /* Reduced from 44px */
+  border-radius: 16px; /* Changed from 18px for more square look */
+  background: #0069AD;
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 8px;
+}
+
+.add-button .plus {
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 400;
+}
+
+.plus-icon {
   width: 24px;
   height: 24px;
-  border-radius: 50%;
-  background-color: #0069AD;
-  color: white;
-  border: none;
-  cursor: pointer;
 }
 
 .main-content {
-  padding: 140px 20px 20px;
+  width: 360px; /* Match user-bar width */
+  margin: 60px auto 0; /* Center content and add top margin */
+  padding: 32px 0 20px; /* Remove horizontal padding */
 }
 
 .agendamento-card {
@@ -273,29 +350,95 @@
 }
 
 .novo-agendamento {
+  background-color: #0069AD;
+  border-radius: 10px;
+  padding: 24px;
   margin-top: 30px;
+  position: relative;
 }
 
-.filtro {
-  display: flex;
-  gap: 10px;
+.novo-agendamento h2 {
+  text-align: center;
+  color: #FFD700;
+  font-size: 24px;
+  margin-bottom: 24px;
 }
 
-.filtro select {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #DDD;
-  border-radius: 4px;
+.novo-agendamento label {
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 120%;
+  margin-bottom: 8px;
+  display: block;
 }
 
-.search-button {
+.novo-agendamento select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #FFFFFF;
+  font-size: 16px;
+  line-height: 120%;
+  margin-bottom: 16px;
+  appearance: none; /* Remove default arrow */
+  background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10L12 15L17 10' stroke='%230069AD' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 44px; /* Space for arrow */
+}
+
+.back-button, .search-button {
   width: 40px;
   height: 40px;
-  background-color: #0069AD;
-  color: white;
+  background-color: #0069AD;  /* Changed from #FFD700 to #0069AD */
+  border-radius: 50%;
+  position: absolute;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
+}
+
+/* Novo Agendamento buttons - Yellow */
+.filtro .search-button,
+.action-buttons .back-button,
+.action-buttons .search-button {
+  width: 40px;
+  height: 40px;
+  background-color: #FFD700;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+}
+
+/* Update the calendar container to allow space for buttons */
+.react-datepicker__month-container {
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 8px;
+  padding: 16px;
+  position: relative;
+  margin-bottom: 48px; /* Add space for buttons */
+}
+
+/* Hide default calendar navigation */
+.react-datepicker__navigation {
+  display: none !important;
+}
+
+.arrow-icon {
+  width: 24px;
+  height: 24px;
+
 }
 
 h2 {
@@ -311,4 +454,576 @@ h3 {
 p {
   margin: 5px 0;
   color: #666;
+}
+
+/* New styles for history cards */
+.historico {
+  margin-top: 30px;
+}
+
+.historico-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.historico-card {
+  background: #FFFFFF;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.historico-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* Base tag styles */
+.tag {
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Status tags - Main colors */
+.tag-status {
+  font-weight: 400;
+  font-size: 10px;
+}
+
+.tag-status.concluido {
+  background: #34C759;
+  color: #FFFFFF;
+}
+
+.tag-status.cancelado {
+  background: #FF3B30;
+  color: #FFFFFF;
+}
+
+.tag-status.pendente {
+  background: #F8C400; /* Updated yellow color */
+  color: #FFFFFF;
+}
+
+.tag-status.confirmado {
+  background: #007AFF;
+  color: #FFFFFF;
+}
+
+/* Secondary tags - 30% opacity backgrounds */
+.historico-card.concluido .tag-time,
+.historico-card.concluido .tag-date,
+.historico-card.concluido .tag-people {
+  background-color: rgba(52, 199, 89, 0.3);
+  color: #34C759;
+}
+
+.historico-card.cancelado .tag-time,
+.historico-card.cancelado .tag-date,
+.historico-card.cancelado .tag-people {
+  background-color: rgba(255, 59, 48, 0.3);
+  color: #FF3B30;
+}
+
+.historico-card.pendente .tag-time,
+.historico-card.pendente .tag-date,
+.historico-card.pendente .tag-people {
+  background-color: rgba(248, 196, 0, 0.3);
+  color: #F8C400;
+}
+
+.historico-card.confirmado .tag-time,
+.historico-card.confirmado .tag-date,
+.historico-card.confirmado .tag-people {
+  background: rgba(0, 122, 255, 0.3);
+  color: #007AFF;
+}
+
+.historico-location {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.location-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* First row - Campus Icon and Sala name */
+.location-row:first-child img {
+  filter: invert(29%) sepia(85%) saturate(1843%) hue-rotate(189deg) brightness(91%) contrast(101%); /* For #0069AD */
+}
+
+.location-row:first-child .location-name {
+  color: #0069AD;
+}
+
+/* Second row - Ping icon and Campus name */
+.location-row:last-child img,
+.location-row:last-child .location-campus {
+  color: #F8C400;
+}
+
+.location-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.location-name {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.location-campus {
+  font-size: 12px;
+  line-height: 1.2;
+  color: #F8C400; /* Updated color */
+}
+
+.filtro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filtro label {
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 120%;
+}
+
+.filtro select {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: none;
+  background: #FFFFFF;
+  font-size: 14px;
+  line-height: 120%;
+  margin-bottom: 56px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10L12 15L17 10' stroke='%230069AD' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 44px;
+}
+
+.back-button {
+  width: 40px;
+  height: 40px;
+  background-color: #0069AD;  /* Changed from #FFD700 to #0069AD */
+  border-radius: 50%;
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+}
+
+.back-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.back-icon {
+  width: 24px;
+  height: 24px;
+  transform: rotate(180deg);
+}
+
+.agendamento-details {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.location-selects {
+  display: flex;
+  gap: 16px;
+}
+
+.select-group {
+  flex: 1;
+}
+
+/* Add styles for unavailable dates */
+.calendar .unavailable {
+  color: #FF3B30;
+  position: relative;
+}
+
+.calendar .unavailable::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: #FF3B30;
+  bottom: 50%;
+  left: 0;
+  transform: rotate(-45deg);
+}
+
+/* Update DatePicker styles */
+.react-datepicker {
+  font-family: Inter, sans-serif !important;
+  border: none !important;
+  width: 100% !important;
+  max-width: 280px !important; /* Limit calendar width */
+  margin: 0 auto;
+}
+
+.react-datepicker__month-container {
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 0; /* Remove margem extra */
+}
+
+/* Calendar header with title and legend */
+.calendar-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 8px;
+}
+
+.calendar-month-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.calendar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend-dot.disponivel {
+  background: #34C759;
+}
+
+.legend-dot.ocupado {
+  background: #FF3B30;
+}
+
+.legend-dot.selecionado {
+  background: #0069AD;
+}
+
+/* Calendar navigation buttons - Blue */
+.calendar-navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 0 16px;
+}
+
+.calendar-navigation .back-button,
+.calendar-navigation .search-button {
+  width: 40px;
+  height: 40px;
+  background-color: #0069AD;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+}
+
+/* Common positioning for novo-agendamento buttons */
+.filtro .search-button {
+  right: 16px;
+}
+
+.action-buttons .back-button {
+  left: 16px;
+}
+
+.action-buttons .search-button {
+  right: 16px;
+}
+
+/* Common icon styles */
+.back-icon,
+.arrow-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.back-icon {
+  transform: rotate(180deg);
+}
+
+/* Calendar section adjustments */
+.calendar-section {
+  position: relative;
+}
+
+.calendar-navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.month-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.month-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.calendar-nav {
+  width: 32px;
+  height: 32px;
+  background-color: #0069AD;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.calendar-nav.prev .back-icon,
+.calendar-nav.next .arrow-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.time-inputs {
+  display: flex;
+  gap: 10%;
+}
+
+.time-group {
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+.time-group label {
+  text-align: center;
+  color: #FFFFFF;
+  font-size: 14px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.time-group input[type="time"] {
+  margin-left:35px ;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: none;
+  background: #FFFFFF;
+  font-size: 14px;
+  color: #333;
+}
+
+/* Remove default time input styling */
+.time-group input[type="time"]::-webkit-calendar-picker-indicator {
+  background: none;
+}
+
+.time-group input[type="time"]::-webkit-datetime-edit {
+  padding: 0;
+}
+
+/* Calendar navigation buttons - disabled state */
+.calendar-nav.prev:disabled,
+.calendar-nav.next:disabled {
+  background-color: #FFFFFF;
+  border: 2px solid #0069AD;
+  cursor: not-allowed;
+}
+
+.calendar-nav.prev:disabled .back-icon,
+.calendar-nav.next:disabled .arrow-icon {
+  filter: invert(27%) sepia(98%) saturate(1341%) hue-rotate(187deg) brightness(92%) contrast(101%);
+  opacity: 0.3;
+}
+
+/* Novo agendamento navigation buttons - disabled state */
+.action-buttons .back-button:disabled,
+.action-buttons .search-button:disabled,
+.filtro .search-button:disabled {
+  background-color: #FFFFFF;
+  border: 2px solid #F8C400;
+  cursor: not-allowed;
+}
+
+.action-buttons .back-button:disabled .back-icon,
+.action-buttons .search-button:disabled .arrow-icon,
+.filtro .search-button:disabled .arrow-icon {
+  filter: invert(83%) sepia(24%) saturate(2199%) hue-rotate(332deg) brightness(103%) contrast(96%);
+  opacity: 0.3;
+}
+
+/* Update calendar day styles */
+.react-datepicker__day {
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  margin: 2px !important;
+  border-radius: 50% !important;
+  font-size: 14px !important;
+  position: relative;
+}
+
+/* Status-based day colors */
+.react-datepicker__day.disponivel {
+  color: #34C759 !important;
+}
+
+.react-datepicker__day.ocupado {
+  color: #FF3B30 !important;
+}
+
+.react-datepicker__day.selecionado,
+.react-datepicker__day--selected {
+  background-color: #0069AD !important;
+  color: white !important;
+}
+
+/* Hover effects */
+.react-datepicker__day:hover {
+  background-color: rgba(0, 105, 173, 0.1) !important;
+}
+
+/* Outside month days */
+.react-datepicker__day--outside-month {
+  color: #CCC !important;
+}
+
+/* Selected day */
+.react-datepicker__day--selected.disponivel,
+.react-datepicker__day--selected.ocupado {
+  background-color: #0069AD !important;
+  color: white !important;
+}
+
+.confirmacao-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.confirmacao-agendamento {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  background: #0069AD;
+  border-radius: 8px;
+}
+
+.selected-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.detail-chip-location {
+  background: #FFD700;
+  border-radius: 20px;
+  padding: 2px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-size: 14px;
+}
+.detail-chip-location-icon {
+  column-rule-color: #004085;
+}
+.detail-chip-time {
+  background: #FFD700;
+  border-radius: 20px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.detail-chip img {
+  width: 16px;
+  height: 16px;
+}
+
+.booking-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  color: #FFFFFF;
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #FFFFFF;
+  font-size: 14px;
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
 }
