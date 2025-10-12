@@ -622,16 +622,14 @@ p {
 .back-button {
   width: 40px;
   height: 40px;
-  background-color: #0069AD;  /* Changed from #FFD700 to #0069AD */
+  background-color: #FFD700;
   border-radius: 50%;
-  position: absolute;
-  bottom: 16px;
-  left: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   cursor: pointer;
+  order: 1;
 }
 
 .back-button:disabled {
@@ -976,9 +974,7 @@ p {
   color: #ffffff;
   font-size: 14px;
 }
-.detail-chip-location-icon {
-  column-rule-color: #004085;
-}
+
 .detail-chip-time {
   background: #FFD700;
   border-radius: 20px;
@@ -1010,7 +1006,7 @@ p {
 
 .form-group label {
   color: #FFFFFF;
-  font-size: 14px;
+ 
 }
 
 .form-group input,
@@ -1024,6 +1020,287 @@ p {
 }
 
 .form-group textarea {
-  min-height: 100px;
   resize: vertical;
+}
+
+.input-with-icon {
+  position: relative;
+  width: 100%;
+}
+
+.input-with-icon input,
+.input-with-icon textarea {
+  width: 80%;
+  padding: 12px 12px 12px 40px;
+  border-radius: 8px;
+  border: none;
+  background: #FFFFFF;
+  font-size: 14px;
+}
+
+.input-with-icon .input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+
+.input-with-icon textarea + .input-icon {
+  top: 24px;
+  transform: none;
+}
+
+.resumo-agendamento {
+  background-color: #0069AD;
+  border-radius: 10px;
+  padding: 24px;
+  color: #FFFFFF;
+  position: relative;
+  min-height: 400px;
+}
+
+.resumo-agendamento h2 {
+  color: #FFD700;
+  font-size: 24px;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.resumo-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-bottom: 80px; /* Adicione margem abaixo do conteúdo */
+}
+
+.resumo-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resumo-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.resumo-item .label {
+  color: #FFD700;
+  font-weight: 700; /* Bold */
+  min-width: 80px;
+}
+
+.resumo-item .value {
+  color: #FFFFFF;
+}
+
+.action-buttons {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  right: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.back-button {
+  width: 40px;
+  height: 40px;
+  background-color: #FFD700;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+}
+
+.confirm-button {
+  width: auto;
+  height: 40px;
+  background-color: #FFD700;
+  border-radius: 20px;
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+  margin-left: auto; /* Força o botão para a direita */
+}
+
+.confirm-button img {
+  width: 20px;
+  height: 20px;
+}
+
+.confirm-button span {
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.concluir-button {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  background-color: #FFD700;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.concluir-button span {
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.sucesso-agendamento {
+  background-color: #0069AD;
+  border-radius: 10px;
+  padding: 24px;
+  color: #FFFFFF;
+  position: relative;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.sucesso-agendamento h2 {
+  color: #FFD700;
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.sucesso-agendamento h3 {
+  color: #FFFFFF;
+  font-size: 32px;
+  margin-bottom: 32px;
+}
+
+.sucesso-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 24px;
+  margin-top: 48px;
+}
+
+.big-check-icon {
+  width: 120px;
+  height: 120px;
+}
+
+.sucesso-message {
+  font-size: 18px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.sucesso-submessage {
+  font-size: 14px;
+  opacity: 0.8;
+  color: #fff;
+}
+
+/* Add to your Agendamento.css */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #FFFFFF;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.profile-photo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-info h3 {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.user-info p {
+  margin: 4px 0 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.reservations-list {
+  margin-top: 24px;
+}
+
+.reservation-card {
+  background: #FFFFFF;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.reservation-card h3 {
+  margin: 0 0 8px;
+  color: #333;
+}
+
+.reservation-card p {
+  margin: 4px 0;
+  color: #666;
+}
+
+.status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status.pending {
+  background: #FFF3CD;
+  color: #856404;
+}
+
+.status.approved {
+  background: #D4EDDA;
+  color: #155724;
+}
+
+.status.rejected {
+  background: #F8D7DA;
+  color: #721C24;
+}
+
+.loading {
+  text-align: center;
+  padding: 24px;
+  color: #666;
+}
+
+.error-message {
+  background: #F8D7DA;
+  color: #721C24;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
 }

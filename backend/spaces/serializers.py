@@ -1,6 +1,9 @@
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from .models import Building, SpaceType, Space, Reservation
 from django.utils import timezone
+
+User = get_user_model()
 
 class BuildingSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,6 +23,11 @@ class SpaceSerializer(serializers.ModelSerializer):
         model = Space
         fields = '__all__'
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'profile_photo']
+
 class ReservationSerializer(serializers.ModelSerializer):
     space_name = serializers.CharField(source='space.name', read_only=True)
     building_name = serializers.CharField(source='space.building.name', read_only=True)
@@ -28,7 +36,8 @@ class ReservationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Reservation
-        fields = '__all__'
+        fields = ['id', 'space_name', 'building_name', 'start_datetime', 
+                 'end_datetime', 'status', 'title', 'description']
         read_only_fields = ['user', 'status', 'created_at', 'updated_at']
 
     def validate(self, data):

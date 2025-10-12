@@ -11,6 +11,11 @@ import "react-datepicker/dist/react-datepicker.css";
 import { ptBR } from 'date-fns/locale';
 import { format } from 'date-fns';
 import Calendario from '../../assets/Calendario.svg';
+import ChapeuIcon from '../../assets/chapeu.svg';
+import TelefoneIcon from '../../assets/telefone.svg';
+import MensagemIcon from '../../assets/Icones-Mensagem.svg';
+import CheckIcon from '../../assets/check.svg'; // Importe o ícone de confirmação
+import BigCheckIcon from '../../assets/Big-Check.svg';
 
 interface Agendamento {
   id: number;
@@ -106,7 +111,7 @@ const mockDayStatuses: DayStatus[] = [
 ];
 
 // Update the step type
-type AgendamentoStep = 'campus' | 'andar' | 'sala' | 'confirmacao';
+type AgendamentoStep = 'campus' | 'andar' | 'sala' | 'confirmacao' | 'resumo' | 'sucesso';
 
 // Add new interface for booking details
 interface BookingDetails {
@@ -123,7 +128,33 @@ interface BookingDetails {
   observacao: string;
 }
 
+interface UserProfile {
+  id: number;
+  email: string;
+  username: string;
+  first_name: string;
+  last_name: string;
+  profile_photo?: string;
+}
+
+interface Reservation {
+  id: number;
+  space_name: string;
+  building_name: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: string;
+  title: string;
+  description: string;
+}
+
 export const Agendamento = (): JSX.Element => {
+  // Add new states
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userReservations, setUserReservations] = useState<Reservation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [historico, setHistorico] = useState<Agendamento[]>([]);
   const [mostrarTodosAgendamentos, setMostrarTodosAgendamentos] = useState(false);
@@ -256,6 +287,29 @@ export const Agendamento = (): JSX.Element => {
     setHistorico(historicoAgendamentos);
   }, []);
 
+  // Add useEffect to fetch data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [profile, reservations] = await Promise.all([
+          getUserProfile(),
+          getUserReservations()
+        ]);
+        
+        setUserProfile(profile);
+        setUserReservations(reservations);
+      } catch (err) {
+        setError('Erro ao carregar dados');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   // Update the add button click handler
   const handleAddClick = () => {
     setShowNovoAgendamento(true);
@@ -266,8 +320,8 @@ export const Agendamento = (): JSX.Element => {
     }, 100);
   };
 
-  // Add handler for next step
-  const handleNextStep = () => {
+  // Update handleNextStep function
+  const handleNextStep = async () => {
     if (agendamentoStep === 'campus' && selectedValues.campus) {
       setAgendamentoStep('andar');
     } else if (agendamentoStep === 'andar' && selectedValues.andar && selectedValues.sala && timeRange.start && timeRange.end && selectedDate.date) {
@@ -284,11 +338,40 @@ export const Agendamento = (): JSX.Element => {
         }
       });
       setAgendamentoStep('confirmacao');
+    } else if (agendamentoStep === 'confirmacao' && bookingDetails.curso && bookingDetails.telefone) {
+      setAgendamentoStep('resumo');
+    } else if (agendamentoStep === 'resumo') {
+      // Automatically go to sucesso step after resumo
+      setAgendamentoStep('sucesso');
+    } else if (agendamentoStep === 'sucesso') {
+      try {
+        const reservationData = {
+          building: bookingDetails.campus,
+          space: bookingDetails.sala,
+          start_datetime: `${bookingDetails.data}T${bookingDetails.horario.inicio}`,
+          end_datetime: `${bookingDetails.data}T${bookingDetails.horario.fim}`,
+          title: bookingDetails.curso,
+          description: bookingDetails.observacao || 'Sem observações',
+        };
+
+        await createReservation(reservationData);
+        setAgendamentoStep('sucesso');
+        
+        // Refresh reservations list
+        const newReservations = await getUserReservations();
+        setUserReservations(newReservations);
+      } catch (err) {
+        setError('Erro ao criar agendamento');
+        console.error(err);
+      }
     }
   };
 
+  // Update handleBackStep function
   const handleBackStep = () => {
-    if (agendamentoStep === 'sala') {
+    if (agendamentoStep === 'resumo') {
+      setAgendamentoStep('confirmacao');
+    } else if (agendamentoStep === 'confirmacao') {
       setAgendamentoStep('andar');
     } else if (agendamentoStep === 'andar') {
       setAgendamentoStep('campus');
@@ -340,6 +423,40 @@ export const Agendamento = (): JSX.Element => {
 
   return (
     <div className="agendamento-container">
+      {/* Add user profile section */}
+      {userProfile && (
+        <div className="user-profile">
+          <img 
+            src={userProfile.profile_photo || '/default-avatar.png'} 
+            alt="Profile" 
+            className="profile-photo" 
+          />
+          <div className="user-info">
+            <h3>{`${userProfile.first_name} ${userProfile.last_name}`}</h3>
+            <p>{userProfile.email}</p>
+          </div>
+        </div>
+      )}
+
+      
+      {/* Show reservations list */}
+      <div className="reservations-list">
+        
+        {userReservations.map(reservation => (
+          <div key={reservation.id} className="reservation-card">
+            <h3>{reservation.title}</h3>
+            <p>{reservation.space_name} - {reservation.building_name}</p>
+            <p>
+              {new Date(reservation.start_datetime).toLocaleString()} - 
+              {new Date(reservation.end_datetime).toLocaleString()}
+            </p>
+            <span className={`status ${reservation.status}`}>
+              {reservation.status}
+            </span>
+          </div>
+        ))}
+      </div>
+
       <header className="header">
         <div className="blue-bar">
         </div>
@@ -441,7 +558,6 @@ export const Agendamento = (): JSX.Element => {
 
         {showNovoAgendamento && (
           <section className="novo-agendamento" ref={novoAgendamentoRef}>
-            <h2>Novo Agendamento</h2>
             {agendamentoStep === 'campus' ? (
               <div className="filtro">
                 <label>{stepContents.campus.label}</label>
@@ -466,6 +582,7 @@ export const Agendamento = (): JSX.Element => {
                 </button>
               </div>
             ) : agendamentoStep === 'andar' ? (
+              
               <div className="agendamento-details">
                 <div className="select-row">
                   <div className="select-group">
@@ -593,9 +710,9 @@ export const Agendamento = (): JSX.Element => {
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : agendamentoStep === 'confirmacao' ? (
               <div className="confirmacao-agendamento">
-                <h2></h2>
+                <h2>Novo Agendamento</h2>
                 
                 <div className="selected-details">
                   <div className="detail-chip-location">
@@ -614,40 +731,49 @@ export const Agendamento = (): JSX.Element => {
 
                 <div className="form-group">
                   <label>Insira o curso</label>
-                  <input
-                    type="text"
-                    placeholder="Curso"
-                    value={bookingDetails.curso}
-                    onChange={(e) => setBookingDetails({
-                      ...bookingDetails,
-                      curso: e.target.value
-                    })}
-                  />
+                  <div className="input-with-icon">
+                    <img src={ChapeuIcon} alt="Curso" className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="Curso"
+                      value={bookingDetails.curso}
+                      onChange={(e) => setBookingDetails({
+                        ...bookingDetails,
+                        curso: e.target.value
+                      })}
+                    />
+                  </div>
                 </div>
 
                 <div className="form-group">
                   <label>Telefone para contato</label>
-                  <input
-                    type="tel"
-                    placeholder="Contato"
-                    value={bookingDetails.telefone}
-                    onChange={(e) => setBookingDetails({
-                      ...bookingDetails,
-                      telefone: e.target.value
-                    })}
-                  />
+                  <div className="input-with-icon">
+                    <img src={TelefoneIcon} alt="Telefone" className="input-icon" />
+                    <input
+                      type="tel"
+                      placeholder="Contato"
+                      value={bookingDetails.telefone}
+                      onChange={(e) => setBookingDetails({
+                        ...bookingDetails,
+                        telefone: e.target.value
+                      })}
+                    />
+                  </div>
                 </div>
 
                 <div className="form-group">
                   <label>Observações da reserva (Opcional)</label>
-                  <textarea
-                    placeholder="Observação"
-                    value={bookingDetails.observacao}
-                    onChange={(e) => setBookingDetails({
-                      ...bookingDetails,
-                      observacao: e.target.value
-                    })}
-                  />
+                  <div className="input-with-icon">
+                    <img src={MensagemIcon} alt="Observação" className="input-icon" />
+                    <textarea
+                      placeholder="Observação"
+                      value={bookingDetails.observacao}
+                      onChange={(e) => setBookingDetails({
+                        ...bookingDetails,
+                        observacao: e.target.value
+                      })}
+                    />
+                  </div>
                 </div>
 
                 <div className="action-buttons">
@@ -659,11 +785,86 @@ export const Agendamento = (): JSX.Element => {
                     onClick={handleNextStep}
                     disabled={!bookingDetails.curso || !bookingDetails.telefone}
                   >
-                    <img src={RightArrowIcon} alt="Confirmar" className="arrow-icon" />
+                    <img src={RightArrowIcon} alt="Próximo" className="arrow-icon" />
                   </button>
                 </div>
               </div>
-            )}
+            ) : agendamentoStep === 'resumo' ? (
+              <div className="resumo-agendamento">
+                <h2>Novo Agendamento</h2>
+                <h3>Resumo</h3>
+                
+                <div className="resumo-content">
+                  <div className="resumo-group">
+                    <div className="resumo-item">
+                      <span className="label">Campus:</span>
+                      <span className="value">{bookingDetails.campus}</span>
+                    </div>
+                    <div className="resumo-item">
+                      <span className="label">Sala:</span>
+                      <span className="value">{bookingDetails.sala}</span>
+                    </div>
+                  </div>
+
+                  <div className="resumo-group">
+                    <div className="resumo-item">
+                      <span className="label">Data:</span>
+                      <span className="value">{bookingDetails.data}</span>
+                    </div>
+                    <div className="resumo-item">
+                      <span className="label">Horário:</span>
+                      <span className="value">{`${bookingDetails.horario.inicio} às ${bookingDetails.horario.fim}`}</span>
+                    </div>
+                  </div>
+
+                  <div className="resumo-group">
+                    <div className="resumo-item">
+                      <span className="label">Curso:</span>
+                      <span className="value">{bookingDetails.curso}</span>
+                    </div>
+                    <div className="resumo-item">
+                      <span className="label">Contato:</span>
+                      <span className="value">{bookingDetails.telefone}</span>
+                    </div>
+                  </div>
+
+                  {bookingDetails.observacao && (
+                    <div className="resumo-group">
+                      <div className="resumo-item">
+                        <span className="label">Obs:</span>
+                        <span className="value">{bookingDetails.observacao}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="action-buttons">
+                  <button className="back-button" onClick={handleBackStep}>
+                    <img src={RightArrowIcon} alt="Voltar" className="back-icon" />
+                  </button>
+                  <button className="confirm-button" onClick={handleNextStep}>
+                    <img src={CheckIcon} alt="Confirmar" />
+                    <span>Confirmar</span>
+                  </button>
+                </div>
+              </div>
+            ) : agendamentoStep === 'sucesso' ? (
+              <div className="sucesso-agendamento">
+                <h2>Novo Agendamento</h2>
+                <h3>Tudo pronto!</h3>
+                
+                <div className="sucesso-content">
+                  <img src={BigCheckIcon} alt="Sucesso" className="big-check-icon" />
+                  <p className="sucesso-message">Seu pedido de agendamento será analisado!</p>
+                  <p className="sucesso-submessage">Mandaremos uma mensagem para te avisar da sua reserva</p>
+                </div>
+
+                <button className="concluir-button" onClick={() => setShowNovoAgendamento(false)}>
+                  <img src={CheckIcon} alt="Confirmar" />
+                  <span>Concluir</span>
+                </button>
+              </div>
+            ) : null}
           </section>
         )}
       </main>

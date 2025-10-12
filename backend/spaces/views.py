@@ -1,14 +1,17 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
 from .models import Building, SpaceType, Space, Reservation, FloorPlan
 from .serializers import (
     BuildingSerializer, SpaceTypeSerializer, 
-    SpaceSerializer, ReservationSerializer
+    SpaceSerializer, ReservationSerializer, UserProfileSerializer
 )
+
+User = get_user_model()
 
 class BuildingViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Building.objects.all()
@@ -61,8 +64,8 @@ class SpaceViewSet(viewsets.ReadOnlyModelViewSet):
         })
 
 class ReservationViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = ReservationSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -139,3 +142,9 @@ def get_floor_spaces(request, floor_id):
         'location_x': space.location_x,
         'location_y': space.location_y
     } for space in spaces])
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_user_profile(request):
+    serializer = UserProfileSerializer(request.user)
+    return Response(serializer.data)

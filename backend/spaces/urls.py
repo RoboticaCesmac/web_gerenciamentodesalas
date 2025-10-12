@@ -13,4 +13,5 @@ urlpatterns = [
     path('floor-plans/<int:plan_id>/', views.get_floor_plan, name='get_floor_plan'),
     path('buildings/<int:building_id>/floors/', views.get_building_floors),
     path('floors/<int:floor_id>/spaces/', views.get_floor_spaces),
+    path('profile/', views.get_user_profile, name='user-profile'),  # Nova rota
 ]
