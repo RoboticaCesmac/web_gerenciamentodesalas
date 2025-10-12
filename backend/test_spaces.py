@@ -19,7 +19,8 @@ def get_auth_token():
         response = requests.post(f"{AUTH_URL}/login/", json=login_data)
         if response.status_code == 200:
             print("✅ Login realizado com sucesso!")
-            return response.json()['access']
+            # Alterado aqui - pegando o token diretamente
+            return response.json()['token']
         else:
             print(f"❌ Erro no login: {response.status_code}")
             print(response.json())
@@ -46,6 +47,45 @@ def test_endpoint(url, headers, name):
     except Exception as e:
         print(f"❌ {name}: Erro de conexão - {e}")
 
+def test_building_endpoints():
+    print("\nTestando endpoints de prédios e salas...")
+    
+    token = get_auth_token()
+    if not token:
+        print("❌ Não foi possível obter o token")
+        return
+        
+    # Alterado aqui - usando Token ao invés de Bearer
+    headers = {"Authorization": f"Token {token}"}
+    
+    # Testar listagem de prédios
+    response = requests.get(f"{BASE_URL}/buildings/", headers=headers)
+    if response.status_code == 200:
+        buildings = response.json()
+        print(f"✅ Prédios encontrados: {len(buildings)}")
+        
+        # Se encontrou prédios, testar andares do primeiro prédio
+        if buildings:
+            building_id = buildings[0]['id']
+            response = requests.get(f"{BASE_URL}/buildings/{building_id}/floors/", headers=headers)
+            if response.status_code == 200:
+                floors = response.json()
+                print(f"✅ Andares encontrados para o prédio {building_id}: {len(floors)}")
+                
+                # Se encontrou andares, testar salas do primeiro andar
+                if floors:
+                    floor_id = floors[0]['id']
+                    response = requests.get(f"{BASE_URL}/floors/{floor_id}/spaces/", headers=headers)
+                    if response.status_code == 200:
+                        spaces = response.json()
+                        print(f"✅ Salas encontradas para o andar {floor_id}: {len(spaces)}")
+                    else:
+                        print(f"❌ Erro ao buscar salas: {response.status_code}")
+            else:
+                print(f"❌ Erro ao buscar andares: {response.status_code}")
+    else:
+        print(f"❌ Erro ao buscar prédios: {response.status_code}")
+
 def main():
     print("🔐 Obtendo token de autenticação...")
     token = get_auth_token()
@@ -53,7 +93,8 @@ def main():
     if not token:
         return
     
-    headers = {"Authorization": f"Bearer {token}"}
+    # Alterado aqui também
+    headers = {"Authorization": f"Token {token}"}
     
     print("\n🚀 Testando endpoints da API...")
     
@@ -67,3 +108,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    test_building_endpoints()

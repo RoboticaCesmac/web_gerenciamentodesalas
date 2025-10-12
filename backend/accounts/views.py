@@ -53,7 +53,14 @@ def logout_view(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_profile(request):
-    return Response(UserSerializer(request.user).data)
+    # Adicione permissões de admin se necessário
+    if request.user.is_staff:
+        # Garante que o usuário mantenha suas permissões de admin
+        request.user.is_staff = True
+        request.user.save()
+    
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

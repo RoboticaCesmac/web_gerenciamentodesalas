@@ -10,13 +10,15 @@ from .serializers import (
     BuildingSerializer, SpaceTypeSerializer, 
     SpaceSerializer, ReservationSerializer, UserProfileSerializer
 )
+from rest_framework.authentication import TokenAuthentication
 
 User = get_user_model()
 
 class BuildingViewSet(viewsets.ReadOnlyModelViewSet):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = Building.objects.all()
     serializer_class = BuildingSerializer
-    permission_classes = [IsAuthenticated]
 
 class SpaceTypeViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = SpaceType.objects.all()

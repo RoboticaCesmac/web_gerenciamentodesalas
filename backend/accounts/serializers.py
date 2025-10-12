@@ -5,7 +5,7 @@ from .models import CustomUser
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'username', 'first_name', 'last_name')
+        fields = ('id', 'email', 'username', 'first_name', 'last_name', 'profile_photo')
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -20,16 +20,21 @@ class LoginSerializer(serializers.Serializer):
             if not email.endswith('@cesmac.edu.br'):
                 raise serializers.ValidationError('Apenas emails @cesmac.edu.br são permitidos.')
             
-            # Autenticar o usuário
-            user = authenticate(username=email.lower(), password=password)
-            
-            if user:
-                if user.is_active:
-                    data['user'] = user
+            # Primeiro tenta encontrar o usuário pelo email
+            try:
+                user = CustomUser.objects.get(email=email.lower())
+                # Então autentica usando o username do usuário encontrado
+                authenticated_user = authenticate(username=user.username, password=password)
+                
+                if authenticated_user:
+                    if authenticated_user.is_active:
+                        data['user'] = authenticated_user
+                    else:
+                        raise serializers.ValidationError('Conta desativada.')
                 else:
-                    raise serializers.ValidationError('Conta desativada.')
-            else:
-                raise serializers.ValidationError('Credenciais inválidas.')
+                    raise serializers.ValidationError('Credenciais inválidas.')
+            except CustomUser.DoesNotExist:
+                raise serializers.ValidationError('Email não encontrado.')
         else:
             raise serializers.ValidationError('Email e senha são obrigatórios.')
 

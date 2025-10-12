@@ -1,18 +1,12 @@
 from django.contrib.admin import AdminSite
-from django.template.defaultfilters import register
+from django.contrib.auth.models import Group
 
-class SalaAdminSite(AdminSite):
-    site_header = 'Sistema de Gerenciamento de Salas'
-    site_title = 'Portal Administrativo CESMAC'
-    index_title = 'Gerenciamento'
-    
-    def each_context(self, request):
-        context = super().each_context(request)
-        context.update({
-            'has_permission': True,
-            'is_popup': False,
-            'is_nav_sidebar_enabled': True,
-        })
-        return context
+class SpacesAdminSite(AdminSite):
+    site_header = 'CESMAC - Gerenciamento de Salas'
+    site_title = 'CESMAC Admin'
+    index_title = 'Administração'
 
-admin_site = SalaAdminSite(name='sala_admin')
+admin_site = SpacesAdminSite(name='spaces_admin')
+
+# Register built-in models
+admin_site.register(Group)  # Add this if you need group management
