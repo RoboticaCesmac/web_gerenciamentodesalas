@@ -51,25 +51,25 @@
 
 .user-bar {
   background: #fff;
-  margin: 35px auto 0; /* Increased from 20px to 35px */
+  margin: 35px auto 0;
   position: fixed;
-  top: 124px; /* Adjust this value based on your header height (blue-bar + white-bar) */
+  top: 124px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 101;
-  width: 324px; /* Reduced from 360px (90% of original) */
-  height: 44px; /* Reduced from 72px (90% of original) */
+  width: 324px;
+  height: 44px;
   border-radius: 18px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
-  padding: 11px 18px; /* Reduced from 12px 20px (90% of original) */
+  padding: 11px 18px;
   gap: 16px;
 }
 
 .user-photo {
-  width: 43px; /* Reduced from 48px */
-  height: 43px; /* Reduced from 48px */
+  width: 43px;
+  height: 43px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #eee;
@@ -82,17 +82,15 @@
 }
 
 .welcome {
-  color: #1976d2;
   font-size: 16px;
   font-weight: 500;
-  font-style: medium;
+  color: #1976d2;
 }
 
 .username {
+  font-size: 14px;
+  font-weight: 500;
   color: #222;
-  font-size: 16px;
-  font-weight: 400;
-  font-style: normal;
 }
 
 .add-button {
@@ -128,11 +126,23 @@
 }
 
 .agendamento-card {
-  background-color: #FFFFFF;
-  border-radius: 10px;
-  padding: 0; /* Remove padding */
-  margin-bottom: 15px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.agendamento-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.agendamento-header h3 {
+  margin: 0;
+  color: #333;
 }
 
 .card-content {
@@ -215,7 +225,7 @@
   width: 90px; /* Increased width */
   height: 100%; /* Fill full height */
   background-color: #31B2E3;
-  border-radius: 10px 0 0 10px; /* Round only left corners */
+  border-radius: 8px 0 0 8px; /* Round only left corners */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -292,33 +302,59 @@
 }
 
 .status {
-  display: inline-block;
-  padding: 5px 10px;
+  padding: 4px 8px;
   border-radius: 4px;
-  font-size: 12px;
-  text-transform: uppercase;
-  font-weight: 500;
-  margin-top: 5px;
+  font-size: 0.875rem;
+  text-transform: capitalize;
 }
 
-.status.pendente {
-  background-color: #FFF3CD;
-  color: #856404;
+.status.confirmado,
+.tag-status.confirmado {
+  background: #007AFF;
+  color: #FFFFFF;
 }
 
-.status.confirmado {
-  background-color: #D4EDDA;
-  color: #155724;
+.status.pendente,
+.tag-status.pendente {
+  background: #F8C400;
+  color: #FFFFFF;
 }
 
-.status.cancelado {
-  background-color: #F8D7DA;
-  color: #721C24;
+.status.cancelado,
+.tag-status.cancelado {
+  background: #FF3B30;
+  color: #FFFFFF;
 }
 
-.status.realizado {
-  background-color: #CCE5FF;
-  color: #004085;
+.status.concluido,
+.tag-status.concluido {
+  background: #34C759;
+  color: #FFFFFF;
+}
+
+/* Atualize também os backgrounds com opacidade */
+.historico-card.confirmado .tag-time,
+.historico-card.confirmado .tag-date {
+  background: rgba(0, 122, 255, 0.3);
+  color: #007AFF;
+}
+
+.historico-card.pendente .tag-time,
+.historico-card.pendente .tag-date {
+  background: rgba(248, 196, 0, 0.3);
+  color: #F8C400;
+}
+
+.historico-card.cancelado .tag-time,
+.historico-card.cancelado .tag-date {
+  background: rgba(255, 59, 48, 0.3);
+  color: #FF3B30;
+}
+
+.historico-card.concluido .tag-time,
+.historico-card.concluido .tag-date {
+  background: rgba(52, 199, 89, 0.3);
+  color: #34C759;
 }
 
 .cancel-button {
@@ -1298,9 +1334,39 @@ p {
 }
 
 .error-message {
-  background: #F8D7DA;
-  color: #721C24;
-  padding: 12px;
+  color: #dc3545;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
   border-radius: 4px;
-  margin-bottom: 16px;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+.ver-mais-button {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  padding: 8px;
+  font-size: 0.875rem;
+}
+
+.ver-mais-button:hover {
+  text-decoration: underline;
+}
+
+.agendamentos-section {
+  margin-top: 20px;
+}
+
+.agendamentos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.capacity {
+  font-size: 0.875rem;
+  color: #666;
+  margin-top: 4px;
 }

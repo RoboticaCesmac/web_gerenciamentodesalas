@@ -86,6 +86,19 @@ def test_building_endpoints():
     else:
         print(f"❌ Erro ao buscar prédios: {response.status_code}")
 
+def test_user_reservations(headers):
+    print("\nTestando endpoint de reservas...")
+    try:
+        response = requests.get(f"{BASE_URL}/reservations/", headers=headers)
+        if response.status_code == 200:
+            reservations = response.json()
+            print(f"✅ Reservas encontradas: {len(reservations)}")
+        else:
+            print(f"❌ Erro ao buscar reservas: {response.status_code}")
+            print(f"Detalhes: {response.text[:200]}...")  # Mostra apenas os primeiros 200 caracteres
+    except Exception as e:
+        print(f"❌ Erro na requisição: {str(e)}")
+
 def main():
     print("🔐 Obtendo token de autenticação...")
     token = get_auth_token()
@@ -93,16 +106,16 @@ def main():
     if not token:
         return
     
-    # Alterado aqui também
     headers = {"Authorization": f"Token {token}"}
     
     print("\n🚀 Testando endpoints da API...")
     
-    # Testar cada endpoint
+    # Adicionar o teste de agendamentos
     test_endpoint(f"{BASE_URL}/buildings/", headers, "Prédios")
     test_endpoint(f"{BASE_URL}/space-types/", headers, "Tipos de Espaço")
     test_endpoint(f"{BASE_URL}/spaces/", headers, "Espaços")
     test_endpoint(f"{BASE_URL}/reservations/", headers, "Reservas")
+    test_user_reservations(headers)  # Nova função de teste
     
     print("\n📋 Teste completo!")
 

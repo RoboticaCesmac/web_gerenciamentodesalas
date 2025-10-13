@@ -14,4 +14,7 @@ urlpatterns = [
     path('buildings/<int:building_id>/floors/', views.get_building_floors),
     path('floors/<int:floor_id>/spaces/', views.get_floor_spaces),
     path('profile/', views.get_user_profile, name='user-profile'),
+    # Adicione estas URLs específicas para reservas
+    path('reservations/user/', views.ReservationViewSet.as_view({'get': 'list'}), name='user-reservations'),
+    path('reservations/<int:pk>/', views.ReservationViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='reservation-detail'),
 ]

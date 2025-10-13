@@ -16,16 +16,7 @@ import TelefoneIcon from '../../assets/telefone.svg';
 import MensagemIcon from '../../assets/Icones-Mensagem.svg';
 import CheckIcon from '../../assets/check.svg'; // Importe o ícone de confirmação
 import BigCheckIcon from '../../assets/Big-Check.svg';
-
-interface Agendamento {
-  id: number;
-  local: string;
-  campus: string;
-  data: string;
-  horario: string;
-  pessoas: string;
-  status: 'pendente' | 'confirmado' | 'cancelado' | 'concluido';  // Changed 'realizado' to 'concluido'
-}
+import { getUserProfile, getBuildings, getFloorsByBuilding, getSpacesByFloor, getUserReservations, createReservation } from '../../services/api';
 
 // Update the interface to include step options
 interface StepContent {
@@ -139,24 +130,47 @@ interface UserProfile {
 
 interface Reservation {
   id: number;
+  title: string;
+  description: string;
   space_name: string;
   building_name: string;
   start_datetime: string;
   end_datetime: string;
   status: string;
-  title: string;
-  description: string;
+  user_email: string;
+  capacity: number; // Adicione este campo
+}
+
+// Adicione estas interfaces no início do arquivo, após as existentes
+interface Building {
+  id: number;
+  name: string;
+}
+
+interface Floor {
+  id: number;
+  name: string;
+}
+
+interface Space {
+  id: number;
+  name: string;
 }
 
 export const Agendamento = (): JSX.Element => {
+  // Adicione estes estados
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [floors, setFloors] = useState<Floor[]>([]);
+  const [spaces, setSpaces] = useState<Space[]>([]);
+  
   // Add new states
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userReservations, setUserReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
-  const [historico, setHistorico] = useState<Agendamento[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [historico, setHistorico] = useState<Reservation[]>([]); // Primeiro, adicione o estado para histórico
   const [mostrarTodosAgendamentos, setMostrarTodosAgendamentos] = useState(false);
   const [mostrarTodoHistorico, setMostrarTodoHistorico] = useState(false);
   const [showNovoAgendamento, setShowNovoAgendamento] = useState(false); // Add new state for controlling visibility
@@ -179,129 +193,17 @@ export const Agendamento = (): JSX.Element => {
   });
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  // Simular dados - substituir por chamada API real
-  useEffect(() => {
-    // Dados simulados
-    const mockAgendamentos: Agendamento[] = [
-      {
-        id: 1,
-        local: 'Sala Invertida 1',
-        campus: 'Campus 1',
-        data: '11/08/2025',
-        horario: '08:00',
-        pessoas: '080',
-        status: 'pendente'
-      },
-      {
-        id: 2,
-        local: 'Laboratório 1',
-        campus: 'Campus 1',
-        data: '15/08/2025',
-        horario: '10:00 ',
-        pessoas: '020',
-        status: 'confirmado'
-      },
-      {
-        id: 3,
-        local: 'Sala Invertida 1',
-        campus: 'Campus 1',
-        data: '11/08/2025',
-        horario: '08:00 ',
-        pessoas: '080',
-        status: 'pendente'
-      },
-      {
-        id: 4,
-        local: 'Sala invertida 1',
-        campus: 'Campus 1',
-        data: '15/04/2025',
-        horario: '18:00',
-        pessoas: '50',
-        status: 'concluido'
-      },
-      {
-        id: 5,
-        local: 'Sala invertida 1',
-        campus: 'Campus 1',
-        data: '15/04/2025',
-        horario: '18:00',
-        pessoas: '50',
-        status: 'cancelado'
-      },
-      {
-        id: 6,
-        local: 'Sala invertida 1',
-        campus: 'Campus 1',
-        data: '15/04/2025',
-        horario: '18:00',
-        pessoas: '50',
-        status: 'pendente'
-      },
-      {
-        id: 7,
-        local: 'Sala invertida 1',
-        campus: 'Campus 1',
-        data: '15/04/2025',
-        horario: '18:00',
-        pessoas: '50',
-        status: 'confirmado'
-      },
-      {
-        id: 8,
-        local: 'Sala invertida 1',
-        campus: 'Campus 1',
-        data: '14/04/2025',
-        horario: '14:00',
-        pessoas: '45',
-        status: 'concluido'
-      },
-      {
-        id: 9,
-        local: 'Laboratório 2',
-        campus: 'Campus 2',
-        data: '13/04/2025',
-        horario: '16:00',
-        pessoas: '30',
-        status: 'cancelado'
-      },
-      {
-        id: 10,
-        local: 'Quadra',
-        campus: 'Campus 4',
-        data: '12/04/2025',
-        horario: '10:00',
-        pessoas: '60',
-        status: 'pendente'
-      }
-    ];
-
-    const agendamentosAtivos = mockAgendamentos.filter(
-      a => a.status === 'pendente' || a.status === 'confirmado'
-    ).sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
-
-    // Remova o filtro e mantenha apenas a ordenação por data
-    const historicoAgendamentos = mockAgendamentos
-      .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
-
-    setAgendamentos(agendamentosAtivos);
-    setHistorico(historicoAgendamentos);
-  }, []);
-
-  // Add useEffect to fetch data
+  // Update the useEffect that fetches data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [profile, reservations] = await Promise.all([
-          getUserProfile(),
-          getUserReservations()
-        ]);
-        
+        const profile = await getUserProfile();
+        console.log('Profile data:', profile); // Add this log
         setUserProfile(profile);
-        setUserReservations(reservations);
       } catch (err) {
-        setError('Erro ao carregar dados');
-        console.error(err);
+        console.error('Error loading profile:', err);
+        setError('Erro ao carregar dados do usuário');
       } finally {
         setLoading(false);
       }
@@ -309,6 +211,103 @@ export const Agendamento = (): JSX.Element => {
 
     fetchData();
   }, []);
+
+  // Atualizar useEffect para carregar prédios
+  useEffect(() => {
+    const fetchBuildings = async () => {
+      try {
+        const data = await getBuildings();
+        console.log('Buildings received:', data); // Debug
+        setBuildings(data);
+      } catch (err) {
+        console.error('Erro ao carregar prédios:', err);
+      }
+    };
+
+    fetchBuildings();
+  }, []);
+
+  // Modifique o useEffect para carregar andares quando um campus é selecionado
+  useEffect(() => {
+    const fetchFloors = async () => {
+      if (selectedValues.campus) {
+        const building = buildings.find(b => b.name === selectedValues.campus);
+        console.log('Selected building:', building); // Debug
+        if (building?.id) {
+          try {
+            const data = await getFloorsByBuilding(building.id);
+            console.log('Floors received:', data); // Debug
+            setFloors(data);
+          } catch (err) {
+            console.error('Erro ao carregar andares:', err);
+          }
+        }
+      }
+    };
+    fetchFloors();
+  }, [selectedValues.campus, buildings]);
+
+  // Modifique o useEffect para carregar salas quando um andar é selecionado
+  useEffect(() => {
+    const fetchSpaces = async () => {
+      if (selectedValues.andar) {
+        const floor = floors.find(f => f.name === selectedValues.andar);
+        console.log('Selected floor:', floor); // Debug
+        if (floor?.id) {
+          try {
+            const data = await getSpacesByFloor(floor.id);
+            console.log('Spaces received:', data); // Debug
+            setSpaces(data);
+          } catch (err) {
+            console.error('Erro ao carregar salas:', err);
+          }
+        }
+      }
+    };
+    fetchSpaces();
+  }, [selectedValues.andar, floors]);
+
+  // Atualizar os conteúdos dinâmicos do formulário
+  const stepContentsDynamic = {
+    campus: {
+      title: 'Campus',
+      label: 'Campus',
+      placeholder: 'Escolher Campus',
+      options: buildings.map(building => ({
+        value: building.name,
+        label: building.name
+      }))
+    },
+    details: {
+      title: 'Novo Agendamento',
+      sections: [
+        {
+          label: 'Andar',
+          placeholder: 'Escolher Andar',
+          options: floors.map(floor => ({
+            value: floor.name,
+            label: floor.name
+          }))
+        },
+        {
+          label: 'Sala',
+          placeholder: 'Escolher Sala',
+          options: spaces.map(space => ({
+            value: space.name,
+            label: space.name
+          }))
+        },
+        {
+          label: 'Horário',
+          type: 'time-range'
+        },
+        {
+          label: 'Data',
+          type: 'calendar'
+        }
+      ]
+    }
+  };
 
   // Update the add button click handler
   const handleAddClick = () => {
@@ -324,7 +323,7 @@ export const Agendamento = (): JSX.Element => {
   const handleNextStep = async () => {
     if (agendamentoStep === 'campus' && selectedValues.campus) {
       setAgendamentoStep('andar');
-    } else if (agendamentoStep === 'andar' && selectedValues.andar && selectedValues.sala && timeRange.start && timeRange.end && selectedDate.date) {
+    } else if (agendamentoStep === 'andar' && selectedValues.sala && timeRange.start && timeRange.end && selectedDate.date) {
       // Save the current selections before moving to confirmation
       setBookingDetails({
         ...bookingDetails,
@@ -421,42 +420,111 @@ export const Agendamento = (): JSX.Element => {
     observacao: ''
   });
 
-  return (
-    <div className="agendamento-container">
-      {/* Add user profile section */}
-      {userProfile && (
-        <div className="user-profile">
-          <img 
-            src={userProfile.profile_photo || '/default-avatar.png'} 
-            alt="Profile" 
-            className="profile-photo" 
-          />
-          <div className="user-info">
-            <h3>{`${userProfile.first_name} ${userProfile.last_name}`}</h3>
-            <p>{userProfile.email}</p>
-          </div>
-        </div>
-      )}
-
-      
-      {/* Show reservations list */}
-      <div className="reservations-list">
+  // Atualizar o useEffect que carrega os agendamentos
+  useEffect(() => {
+    const fetchReservations = async () => {
+      try {
+        setLoading(true);
+        setError(null);
         
-        {userReservations.map(reservation => (
-          <div key={reservation.id} className="reservation-card">
-            <h3>{reservation.title}</h3>
-            <p>{reservation.space_name} - {reservation.building_name}</p>
-            <p>
-              {new Date(reservation.start_datetime).toLocaleString()} - 
-              {new Date(reservation.end_datetime).toLocaleString()}
-            </p>
-            <span className={`status ${reservation.status}`}>
-              {reservation.status}
-            </span>
+        const userProfileData = await getUserProfile();
+        const reservationsData = await getUserReservations();
+        
+        setUserProfile(userProfileData);
+        setReservations(reservationsData);
+        setHistorico(reservationsData); // O histórico agora usa os mesmos dados
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        setError('Erro ao carregar agendamentos');
+        setLoading(false);
+      }
+    };
+
+    fetchReservations();
+  }, []);
+
+  // Adicione esta função de mapeamento de status
+  const mapStatusToClassName = (status: string) => {
+    const statusMap: Record<string, string> = {
+      'approved': 'confirmado',
+      'pending': 'pendente',
+      'rejected': 'cancelado',
+      'completed': 'concluido',
+      'canceled': 'cancelado'
+    };
+    return statusMap[status] || status;
+  };
+
+  // E adicione esta nova função para traduzir o texto do status
+  const getStatusText = (status: string) => {
+    const statusTextMap: Record<string, string> = {
+      'approved': 'Confirmado',
+      'pending': 'Pendente',
+      'rejected': 'Cancelado',
+      'completed': 'Concluído',
+      'canceled': 'Cancelado'
+    };
+    return statusTextMap[status] || status;
+  };
+
+  // Atualize a função renderAgendamentos
+  const renderAgendamentos = () => {
+    if (loading) return <p>Carregando...</p>;
+    if (error) return <p>{error}</p>;
+    if (reservations.length === 0) return <p>Nenhum agendamento encontrado.</p>;
+
+    const reservationsToShow = mostrarTodosAgendamentos 
+      ? reservations 
+      : reservations.slice(0, 3);
+
+    return (
+      <>
+        {reservationsToShow.map((reservation) => (
+          <div key={reservation.id} className="agendamento-card">
+            <div className="card-content">
+              <div className="card-left">
+                <div className="building-icon">
+                  <img src={Campusico} alt="Campus" className="campus-icon" />
+                  <span className="campus-name">{reservation.building_name}</span>
+                </div>
+              </div>
+              <div className="card-right">
+                <div className="header-buttons">
+                  <button className="edit-button">Editar</button>
+                  <button className="cancel-button-small">Cancelar</button>
+                </div>
+                <div className="local-details">
+                  <h3>{reservation.space_name}</h3>
+                </div>
+                <div className="agendamento-info">
+                  <p>{new Date(reservation.start_datetime).toLocaleDateString()}</p>
+                  <p>{`${new Date(reservation.start_datetime).toLocaleTimeString()} - 
+                      ${new Date(reservation.end_datetime).toLocaleTimeString()}`}</p>
+                  <p className={`status ${mapStatusToClassName(reservation.status)}`}>
+                    {getStatusText(reservation.status)}
+                  </p>
+                  <p className="capacity">Pessoas: {reservation.capacity}</p>
+                </div>
+              </div>
+            </div>
           </div>
         ))}
-      </div>
+        {reservations.length > 3 && (
+          <button
+            className="ver-mais"
+            onClick={() => setMostrarTodosAgendamentos(!mostrarTodosAgendamentos)}
+          >
+            {mostrarTodosAgendamentos ? 'Ver menos' : 'Ver mais'}
+          </button>
+        )}
+      </>
+    );
+  };
 
+  return (
+    <div className="agendamento-container">
       <header className="header">
         <div className="blue-bar">
         </div>
@@ -464,10 +532,23 @@ export const Agendamento = (): JSX.Element => {
           <img src={logoImg} alt="CESMAC" className="logo" />
         </div>
         <div className="user-bar">
-          <img src={userImg} alt="Perfil" className="user-photo" />
+          <img 
+            src={userProfile?.profile_photo || userImg} 
+            alt="Perfil" 
+            className="user-photo" 
+          />
           <div className="user-info">
             <span className="welcome">Bem-vindo!</span>
-            <span className="username">Gabriela Saraiva</span>
+            <span className="username">
+              {loading 
+                ? 'Carregando...'
+                : userProfile
+                  ? userProfile.first_name 
+                    ? `${userProfile.first_name.replace('.', ' ')} ${userProfile.last_name?.replace('.', ' ') || ''}`
+                    : userProfile.username.replace('.', ' ')
+                  : 'Usuário'
+              }
+            </span>
           </div>
           <button className="add-button" onClick={handleAddClick}>
             <img src={PlusIcon} alt="Adicionar" className="plus-icon" />
@@ -478,43 +559,56 @@ export const Agendamento = (): JSX.Element => {
       <main className="main-content">
         <section className="proximos-agendamentos">
           <h2>Meus agendamentos</h2>
-          <div className="agendamentos-list">
-            {agendamentos
-              .slice(0, mostrarTodosAgendamentos ? undefined : 2)
-              .map(agendamento => (
-                <div key={agendamento.id} className="agendamento-card">
-                  <div className="card-content">
-                    <div className="card-left">
-                      <div className="building-icon">
-                        <img src={Campusico} alt="Campus" className="campus-icon" />
-                        <span className="campus-name">{agendamento.campus}</span>
+          {loading ? (
+            <p>Carregando...</p>
+          ) : error ? (
+            <div className="error-message">{error}</div>
+          ) : reservations.length === 0 ? (
+            <p>Nenhum agendamento encontrado.</p>
+          ) : (
+            <>
+              <div className="agendamentos-list">
+                {reservations
+                  .slice(0, mostrarTodosAgendamentos ? undefined : 2)
+                  .map(reservation => (
+                    <div key={reservation.id} className="agendamento-card">
+                      <div className="card-content">
+                        <div className="card-left">
+                          <div className="building-icon">
+                            <img src={Campusico} alt="Campus" className="campus-icon" />
+                            <span className="campus-name">{reservation.building_name}</span>
+                          </div>
+                        </div>
+                        <div className="card-right">
+                          <div className="header-buttons">
+                            <button className="edit-button">Editar</button>
+                            <button className="cancel-button-small">Cancelar</button>
+                          </div>
+                          <div className="local-details">
+                            <h3>{reservation.space_name}</h3>
+                          </div>
+                          <div className="agendamento-info">
+                            <p>{new Date(reservation.start_datetime).toLocaleDateString()}</p>
+                            <p>{`${new Date(reservation.start_datetime).toLocaleTimeString()} - 
+                                ${new Date(reservation.end_datetime).toLocaleTimeString()}`}</p>
+                            <p className={`status ${reservation.status}`}>
+                              {getStatusText(reservation.status)}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="card-right">
-                      <div className="header-buttons">
-                        <button className="edit-button">Editar</button>
-                        <button className="cancel-button-small">Cancelar</button>
-                      </div>
-                      <div className="local-details">
-                        <h3>{agendamento.local}</h3>
-                      </div>
-                      <div className="agendamento-info">
-                        <p>{agendamento.data}</p>
-                        <p>{agendamento.horario}</p>
-                        <p>{agendamento.pessoas}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-          </div>
-          {agendamentos.length > 2 && (
-            <button
-              className="ver-mais"
-              onClick={() => setMostrarTodosAgendamentos(!mostrarTodosAgendamentos)}
-            >
-              {mostrarTodosAgendamentos ? 'Ver menos' : 'Ver mais'}
-            </button>
+                  ))}
+              </div>
+              {reservations.length > 2 && (
+                <button
+                  className="ver-mais"
+                  onClick={() => setMostrarTodosAgendamentos(!mostrarTodosAgendamentos)}
+                >
+                  {mostrarTodosAgendamentos ? 'Ver menos' : 'Ver mais'}
+                </button>
+              )}
+            </>
           )}
         </section>
 
@@ -523,24 +617,27 @@ export const Agendamento = (): JSX.Element => {
           <div className="historico-list">
             {historico
               .slice(0, mostrarTodoHistorico ? undefined : 2)
-              .map(agendamento => (
-                <div key={agendamento.id} className={`historico-card ${agendamento.status}`}>
+              .map(reservation => (
+                <div key={reservation.id} className={`historico-card ${mapStatusToClassName(reservation.status)}`}>
                   <div className="historico-tags">
-                    <span className={`tag tag-status ${agendamento.status}`}>
-                      {agendamento.status.charAt(0).toUpperCase() + agendamento.status.slice(1)}
+                    <span className={`tag tag-status ${mapStatusToClassName(reservation.status)}`}>
+                      {getStatusText(reservation.status)}
                     </span>
-                    <span className="tag tag-time">{agendamento.horario}</span>
-                    <span className="tag tag-date">{agendamento.data}</span>
-                    <span className="tag tag-people">{agendamento.pessoas} Pessoas</span>
+                    <span className="tag tag-time">
+                      {new Date(reservation.start_datetime).toLocaleTimeString()}
+                    </span>
+                    <span className="tag tag-date">
+                      {new Date(reservation.start_datetime).toLocaleDateString()}
+                    </span>
                   </div>
                   <div className="historico-location">
                     <div className="location-row">
                       <img src={Campusico} alt="Campus" className="location-icon" />
-                      <span className="location-name">{agendamento.local}</span>
+                      <span className="location-name">{reservation.space_name}</span>
                     </div>
                     <div className="location-row">
                       <img src={PingIcon} alt="Location" className="location-icon" />
-                      <span className="location-campus">{agendamento.campus}</span>
+                      <span className="location-campus">{reservation.building_name}</span>
                     </div>
                   </div>
                 </div>
@@ -560,17 +657,21 @@ export const Agendamento = (): JSX.Element => {
           <section className="novo-agendamento" ref={novoAgendamentoRef}>
             {agendamentoStep === 'campus' ? (
               <div className="filtro">
-                <label>{stepContents.campus.label}</label>
+                <label>{stepContentsDynamic.campus.label}</label>
                 <select 
                   value={selectedValues.campus} 
                   onChange={(e) => setSelectedValues({
                     ...selectedValues,
-                    campus: e.target.value
+                    campus: e.target.value,
+                    andar: '', // Limpar seleções dependentes
+                    sala: ''
                   })}
                 >
-                  <option value="" disabled>{stepContents.campus.placeholder}</option>
-                  {stepContents.campus.options.map(option => (
-                    <option key={option} value={option}>{option}</option>
+                  <option value="">{stepContentsDynamic.campus.placeholder}</option>
+                  {buildings.map((building) => (
+                    <option key={building.id} value={building.name}>
+                      {building.name}
+                    </option>
                   ))}
                 </select>
                 <button 
@@ -591,15 +692,19 @@ export const Agendamento = (): JSX.Element => {
                       value={selectedValues.andar}
                       onChange={(e) => setSelectedValues({
                         ...selectedValues,
-                        andar: e.target.value
+                        andar: e.target.value,
+                        sala: '' // Limpar sala ao mudar andar
                       })}
                     >
-                      <option value="" disabled>Escolher Andar</option>
-                      {stepContents.details.sections[0].options.map(option => (
-                        <option key={option} value={option}>{option}</option>
+                      <option value="">Escolher Andar</option>
+                      {floors.map(floor => (
+                        <option key={floor.id} value={floor.name}>
+                          {floor.name}
+                        </option>
                       ))}
                     </select>
                   </div>
+
                   <div className="select-group">
                     <label>Sala</label>
                     <select 
@@ -608,10 +713,13 @@ export const Agendamento = (): JSX.Element => {
                         ...selectedValues,
                         sala: e.target.value
                       })}
+                      disabled={!selectedValues.andar}
                     >
-                      <option value="" disabled>Escolher Sala</option>
-                      {stepContents.details.sections[1].options.map(option => (
-                        <option key={option} value={option}>{option}</option>
+                      <option value="">Escolher Sala</option>
+                      {spaces.map(space => (
+                        <option key={space.id} value={space.name}>
+                          {space.name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -867,6 +975,7 @@ export const Agendamento = (): JSX.Element => {
             ) : null}
           </section>
         )}
+        
       </main>
     </div>
   );

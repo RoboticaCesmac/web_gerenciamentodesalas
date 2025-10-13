@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logoCesmac from "../../assets/logo-CESMAC.svg";
+import logoCesmacRedux from "../../assets/logo-CESMAC-redux.svg"
 import iconePerfil from "../../assets/Icones-Perfil.svg";
 import iconeCadeado from "../../assets/ICONE CADEADO.svg";
 import campus1 from "../../assets/Campus1.svg";
 import "./Login.css";
+import { login } from '../../services/api';
 
 export const Login = (): JSX.Element => {
   const [username, setUsername] = useState("");
@@ -26,29 +28,14 @@ export const Login = (): JSX.Element => {
     const fullEmail = `${username}@cesmac.edu.br`;
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: fullEmail,
-          password,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.token);
-        // Optional: Store user data if needed
-        localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/agendamento');
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || "Usuário ou senha incorretos");
-      }
-    } catch (err) {
-      setError("Falha ao tentar acessar. Verifique sua conexão.");
+      // Login and get user data
+      const data = await login({ email: fullEmail, password });
+      
+      // Navigate to agendamento page
+      navigate('/agendamento');
+    } catch (error) {
+      console.error('Erro no login:', error);
+      setError("Usuário ou senha incorretos");
     } finally {
       setLoading(false);
     }
@@ -58,7 +45,7 @@ export const Login = (): JSX.Element => {
     <div className="login">
       <div className="rectangle-base">
         {/* Logo only shows here in desktop mode */}
-        <img className="logo-CESMAC-desktop" alt="Logo CESMAC" src={logoCesmac} />
+        <img className="logo-CESMAC-desktop" alt="Logo CESMAC" src={logoCesmacRedux} />
       </div>
       <div className="content-container">
         {/* Logo shows here only in mobile mode */}

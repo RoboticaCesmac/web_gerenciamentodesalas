@@ -33,12 +33,25 @@ class ReservationSerializer(serializers.ModelSerializer):
     building_name = serializers.CharField(source='space.building.name', read_only=True)
     user_name = serializers.CharField(source='user.get_full_name', read_only=True)
     user_email = serializers.CharField(source='user.email', read_only=True)
+    capacity = serializers.IntegerField(source='space.capacity', read_only=True)  # Adicionado este campo
     
     class Meta:
         model = Reservation
-        fields = ['id', 'space_name', 'building_name', 'start_datetime', 
-                 'end_datetime', 'status', 'title', 'description']
-        read_only_fields = ['user', 'status', 'created_at', 'updated_at']
+        fields = [
+            'id', 
+            'space', 
+            'space_name', 
+            'building_name', 
+            'start_datetime', 
+            'end_datetime', 
+            'status', 
+            'title', 
+            'description',
+            'user_name',
+            'user_email',
+            'capacity'  # Adicionado ao fields
+        ]
+        read_only_fields = ['user']
 
     def validate(self, data):
         # Validar que o horário final é depois do inicial

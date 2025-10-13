@@ -66,14 +66,22 @@ class SpaceViewSet(viewsets.ReadOnlyModelViewSet):
         })
 
 class ReservationViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = ReservationSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
         if user.is_staff:
-            return Reservation.objects.all()
-        return Reservation.objects.filter(user=user)
+            return Reservation.objects.all().select_related(
+                'space', 
+                'space__building', 
+                'user'
+            )
+        return Reservation.objects.filter(user=user).select_related(
+            'space', 
+            'space__building', 
+            'user'
+        )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -114,6 +122,15 @@ class ReservationViewSet(viewsets.ModelViewSet):
         reservation.save()
         
         return Response({'status': 'Reserva cancelada'})
+
+    @action(detail=False, methods=['get'])
+    def my_reservations(self, request):
+        """
+        Endpoint específico para listar apenas as reservas do usuário atual
+        """
+        reservations = self.get_queryset().filter(user=request.user)
+        serializer = self.get_serializer(reservations, many=True)
+        return Response(serializer.data)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
