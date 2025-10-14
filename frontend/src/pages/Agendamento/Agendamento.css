@@ -82,7 +82,7 @@
 }
 
 .welcome {
-  font-size: 16px;
+  font-size:large;
   font-weight: 500;
   color: #1976d2;
 }
@@ -181,7 +181,7 @@
   cursor: pointer;
   font-family: 'Inter', sans-serif;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 900;
   min-width: 72px;
   height: 28px; /* Increased height */
   text-align: center;
@@ -240,7 +240,7 @@
 
 .campus-name {
   color: white;
-  font-size: 16px;
+  font-size:large;
   font-weight: 700;
   text-align: center;
   line-height: 1.2;
@@ -257,7 +257,7 @@
 
 .local-details h3 {
   color: #0069AD;
-  font-size: 16px;
+  font-size:large;
   margin: 0;
   margin-bottom: 4px;
 }
@@ -388,8 +388,8 @@
 .novo-agendamento {
   background-color: #0069AD;
   border-radius: 10px;
-  padding: 24px;
-  margin-top: 30px;
+  padding: 4%;
+  margin-top: 8%;
   position: relative;
 }
 
@@ -398,11 +398,12 @@
   color: #FFD700;
   font-size: 24px;
   margin-bottom: 24px;
+  font-weight: 800;
 }
 
 .novo-agendamento label {
   color: #FFFFFF;
-  font-size: 16px;
+  font-size:large;
   font-weight: 500;
   line-height: 120%;
   margin-bottom: 8px;
@@ -415,7 +416,7 @@
   border-radius: 8px;
   border: none;
   background: #FFFFFF;
-  font-size: 16px;
+  font-size:large;
   line-height: 120%;
   margin-bottom: 16px;
   appearance: none; /* Remove default arrow */
@@ -431,7 +432,7 @@
   background-color: #0069AD;  /* Changed from #FFD700 to #0069AD */
   border-radius: 50%;
   position: absolute;
-  bottom: 16px;
+  
   display: flex;
   align-items: center;
   justify-content: center;
@@ -448,7 +449,7 @@
   background-color: #FFD700;
   border-radius: 50%;
   position: absolute;
-  bottom: 16px;
+ 
   display: flex;
   align-items: center;
   justify-content: center;
@@ -603,7 +604,9 @@ p {
 }
 
 /* Second row - Ping icon and Campus name */
-.location-row:last-child img,
+.location-row:last-child img {
+     color: #F8C400;
+  }
 .location-row:last-child .location-campus {
   color: #F8C400;
 }
@@ -633,7 +636,7 @@ p {
 
 .filtro label {
   color: #FFFFFF;
-  font-size: 16px;
+  font-size:large;
   font-weight: 500;
   line-height: 120%;
 }
@@ -674,8 +677,8 @@ p {
 }
 
 .back-icon {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   transform: rotate(180deg);
 }
 
@@ -683,6 +686,7 @@ p {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  margin-bottom: 20px;
 }
 
 .location-selects {
@@ -738,7 +742,7 @@ p {
 }
 
 .calendar-month-title {
-  font-size: 16px;
+  font-size:large;
   font-weight: 500;
   color: #333;
   margin-bottom: 8px;
@@ -804,18 +808,20 @@ p {
 }
 
 .action-buttons .back-button {
-  left: 16px;
+  left: 20px;
+  bottom: 2px;
 }
 
 .action-buttons .search-button {
-  right: 16px;
+  right: 20px;
+  bottom: 2px;
 }
 
 /* Common icon styles */
 .back-icon,
 .arrow-icon {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
 }
 
 .back-icon {
@@ -825,12 +831,13 @@ p {
 /* Calendar section adjustments */
 .calendar-section {
   position: relative;
+  margin: 0 3% 14% 3%;
 }
 
 .calendar-navigation {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 10%;
 }
 
 .month-navigation {
@@ -842,7 +849,7 @@ p {
 }
 
 .month-title {
-  font-size: 16px;
+  font-size:large;
   font-weight: 500;
   color: #333;
 }
@@ -869,6 +876,7 @@ p {
 .time-inputs {
   display: flex;
   gap: 10%;
+  margin-bottom: 10%;
 }
 
 .time-group {
@@ -880,20 +888,34 @@ p {
 .time-group label {
   text-align: center;
   color: #FFFFFF;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 13px;
   margin-bottom: 8px;
   display: block;
 }
 
 .time-group input[type="time"] {
-  margin-left:35px ;
-  height: 40px;
-  padding: 0 12px;
+  height: 44px;
+  width: 150px;
+  padding: 0;
   border-radius: 8px;
   border: none;
   background: #FFFFFF;
   font-size: 14px;
   color: #333;
+  gap: 4px;
+  text-align: center;
+}
+
+/* Adicione estas regras para garantir a centralização em diferentes navegadores */
+.time-group input[type="time"]::-webkit-datetime-edit {
+  text-align: center;
+  padding: 0;
+}
+
+.time-group input[type="time"]::-webkit-datetime-edit-fields-wrapper {
+  display: flex;
+  justify-content: center;
 }
 
 /* Remove default time input styling */
@@ -923,8 +945,6 @@ p {
 .action-buttons .back-button:disabled,
 .action-buttons .search-button:disabled,
 .filtro .search-button:disabled {
-  background-color: #FFFFFF;
-  border: 2px solid #F8C400;
   cursor: not-allowed;
 }
 
@@ -998,20 +1018,10 @@ p {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 24px;
+  width: 100%; /* Garante que não ultrapasse a largura do container */
 }
 
 .detail-chip-location {
-  background: #FFD700;
-  border-radius: 20px;
-  padding: 2px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #ffffff;
-  font-size: 14px;
-}
-
-.detail-chip-time {
   background: #FFD700;
   border-radius: 20px;
   padding: 8px 16px;
@@ -1019,7 +1029,26 @@ p {
   align-items: center;
   gap: 8px;
   color: #ffffff;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.detail-chip-time {
+  background: #31B2E3;
+  border-radius: 20px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.detail-chip-location span {
+  white-space: nowrap; /* Evita quebra de texto dentro do chip */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .detail-chip img {
@@ -1027,10 +1056,23 @@ p {
   height: 16px;
 }
 
+.detail-chip-location img {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1); /* Isso fará o ícone ficar branco */
+}
+
+/* Se precisar ajustar o tom de branco, pode usar: */
+.detail-chip-location img {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%);
+}
+
 .booking-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 16%;
 }
 
 .form-group {
@@ -1062,6 +1104,7 @@ p {
 .input-with-icon {
   position: relative;
   width: 100%;
+  margin-bottom: 16px;
 }
 
 .input-with-icon input,
@@ -1092,46 +1135,64 @@ p {
 .resumo-agendamento {
   background-color: #0069AD;
   border-radius: 10px;
-  padding: 24px;
+  padding: 0% 12% 8%;
   color: #FFFFFF;
   position: relative;
   min-height: 400px;
 }
 
 .resumo-agendamento h2 {
-  color: #FFD700;
+  color: #ffffff;
   font-size: 24px;
   text-align: center;
   margin-bottom: 32px;
+  font-weight:800;
 }
 
 .resumo-content {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  margin-bottom: 80px; /* Adicione margem abaixo do conteúdo */
+  gap: 16px; /* Reduzido de 32px para 16px para aproximar os grupos */
+  margin-bottom: 80px;
 }
 
 .resumo-group {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 4px; /* Reduzido de 16px para 4px para aproximar os itens dentro do grupo */
 }
 
 .resumo-item {
   display: flex;
-  align-items: baseline;
+  align-items: center; /* Alterado de baseline para center */
   gap: 8px;
+  min-height: 24px; /* Altura mínima para manter consistência */
 }
 
 .resumo-item .label {
   color: #FFD700;
-  font-weight: 700; /* Bold */
+  font-size:large;
+  font-weight: 700;
   min-width: 80px;
+  margin: 0; /* Removido margin */
+}
+.resumo-item .label-2 {
+  color: #FFFFFF;
+  font-size:large;
+  font-weight: 700;
+  min-width: 80px;
+  margin: 0; /* Removido margin */
 }
 
 .resumo-item .value {
   color: #FFFFFF;
+  margin: 0; /* Removido margin */
+  font-size: 16px;
+}
+
+/* Adicione esta regra para criar o espaço entre grupos específicos */
+.resumo-group + .resumo-group {
+  margin-top: 16px; /* Espaço entre grupos */
 }
 
 .action-buttons {
@@ -1160,7 +1221,7 @@ p {
   width: auto;
   height: 40px;
   background-color: #FFD700;
-  border-radius: 20px;
+  border-radius: 16px;
   padding: 8px 24px;
   display: flex;
   align-items: center;
@@ -1168,6 +1229,8 @@ p {
   cursor: pointer;
   border: none;
   margin-left: auto; /* Força o botão para a direita */
+  min-height: 44px;
+  min-width: 88px;
 }
 
 .confirm-button img {
@@ -1177,8 +1240,8 @@ p {
 
 .confirm-button span {
   color: #FFFFFF;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 17px;
+  font-weight: 600;
 }
 
 .concluir-button {
@@ -1197,7 +1260,7 @@ p {
 
 .concluir-button span {
   color: #FFFFFF;
-  font-size: 16px;
+  font-size:large;
   font-weight: 500;
 }
 
@@ -1231,25 +1294,29 @@ p {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 24px;
+  gap: 8px; /* Reduzido de 24px para 8px */
   margin-top: 48px;
 }
 
 .big-check-icon {
   width: 120px;
   height: 120px;
+  margin-bottom: 24px; /* Adiciona espaço após o ícone */
 }
 
 .sucesso-message {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 500;
   color: #fff;
+  margin: 0; /* Remove margem padrão */
 }
 
 .sucesso-submessage {
-  font-size: 14px;
+  font-size: 12px;
   opacity: 0.8;
   color: #fff;
+  font-weight: 300;
+  margin: 0 0 8%; /* Remove margem padrão */
 }
 
 /* Add to your Agendamento.css */
@@ -1369,4 +1436,42 @@ p {
   font-size: 0.875rem;
   color: #666;
   margin-top: 4px;
+}
+
+.conclude-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: none;
+  border: 1px solid #F8C400;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.conclude-button img {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) saturate(100%) invert(76%) sepia(42%) saturate(845%) hue-rotate(353deg) brightness(101%) contrast(103%);
+}
+
+.conclude-button span {
+  color: #F8C400;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  font-style: normal;
+  text-align: center;
+  margin: 0;
+  line-height: 20px;
+}
+
+.conclude-button:hover {
+  background: rgba(248, 196, 0, 0.1);
+}
+
+.conclude-button:active {
+  transform: scale(0.98);
 }

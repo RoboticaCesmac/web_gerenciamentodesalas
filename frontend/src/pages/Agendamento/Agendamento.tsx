@@ -10,6 +10,7 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { ptBR } from 'date-fns/locale';
 import { format } from 'date-fns';
+import Relogio from '../../assets/Relogio.svg';
 import Calendario from '../../assets/Calendario.svg';
 import ChapeuIcon from '../../assets/chapeu.svg';
 import TelefoneIcon from '../../assets/telefone.svg';
@@ -36,56 +37,13 @@ interface SelectedDate {
   isAvailable: boolean;
 }
 
-// Add this before the component
-const stepContents: Record<string, StepContent> = {
-  campus: {
-    title: 'Campus',
-    label: 'Campus',
-    placeholder: 'Escolher Campus',
-    options: ['Campus 1', 'Campus 2', 'Campus 3', 'Campus 4']
-  },
-  details: {
-    title: 'Novo Agendamento',
-    sections: [
-      {
-        label: 'Andar',
-        placeholder: 'Escolher Andar',
-        options: ['1º Andar', '2º Andar', '3º Andar', '4º Andar']
-      },
-      {
-        label: 'Sala',
-        placeholder: 'Escolher Sala',
-        options: ['Sala 101', 'Sala 102', 'Sala 103', 'Laboratório 1']
-      },
-      {
-        label: 'Horário',
-        type: 'time-range'
-      },
-      {
-        label: 'Data',
-        type: 'calendar'
-      }
-    ]
-  }
-};
+
 
 // Add this interface for unavailable times
 interface UnavailableTime {
   date: string;
   times: string[];
 }
-
-// Add mock unavailable times
-const unavailableTimes: UnavailableTime[] = [
-  {
-    date: '2025-08-05',
-    times: ['10:00-12:00', '14:00-16:00']
-  },
-  {
-    date: '2025-08-06',
-    times: ['08:00-10:00']
-  }
-];
 
 // Add this interface for day status
 interface DayStatus {
@@ -309,20 +267,28 @@ export const Agendamento = (): JSX.Element => {
     }
   };
 
+  // Adicione esta função auxiliar no começo do componente
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: 'smooth'
+      });
+    }, 100);
+  };
+
   // Update the add button click handler
   const handleAddClick = () => {
     setShowNovoAgendamento(true);
     setAgendamentoStep('campus');
-    // Scroll to novo-agendamento section
-    setTimeout(() => {
-      novoAgendamentoRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    scrollToBottom();
   };
 
   // Update handleNextStep function
   const handleNextStep = async () => {
     if (agendamentoStep === 'campus' && selectedValues.campus) {
       setAgendamentoStep('andar');
+      scrollToBottom();
     } else if (agendamentoStep === 'andar' && selectedValues.sala && timeRange.start && timeRange.end && selectedDate.date) {
       // Save the current selections before moving to confirmation
       setBookingDetails({
@@ -337,11 +303,14 @@ export const Agendamento = (): JSX.Element => {
         }
       });
       setAgendamentoStep('confirmacao');
+      scrollToBottom();
     } else if (agendamentoStep === 'confirmacao' && bookingDetails.curso && bookingDetails.telefone) {
       setAgendamentoStep('resumo');
+      scrollToBottom();
     } else if (agendamentoStep === 'resumo') {
       // Automatically go to sucesso step after resumo
       setAgendamentoStep('sucesso');
+      scrollToBottom();
     } else if (agendamentoStep === 'sucesso') {
       try {
         const reservationData = {
@@ -655,151 +624,158 @@ export const Agendamento = (): JSX.Element => {
 
         {showNovoAgendamento && (
           <section className="novo-agendamento" ref={novoAgendamentoRef}>
+            <h2>Novo Agendamento</h2>
             {agendamentoStep === 'campus' ? (
-              <div className="filtro">
-                <label>{stepContentsDynamic.campus.label}</label>
-                <select 
-                  value={selectedValues.campus} 
-                  onChange={(e) => setSelectedValues({
-                    ...selectedValues,
-                    campus: e.target.value,
-                    andar: '', // Limpar seleções dependentes
-                    sala: ''
-                  })}
-                >
-                  <option value="">{stepContentsDynamic.campus.placeholder}</option>
-                  {buildings.map((building) => (
-                    <option key={building.id} value={building.name}>
-                      {building.name}
-                    </option>
-                  ))}
-                </select>
-                <button 
-                  className="search-button" 
-                  onClick={handleNextStep}
-                  disabled={!selectedValues.campus}
-                >
-                  <img src={RightArrowIcon} alt="Próximo" className="arrow-icon" />
-                </button>
-              </div>
+              <>
+                <div className="filtro">
+                  <label>{stepContentsDynamic.campus.label}</label>
+                  <select 
+                    value={selectedValues.campus} 
+                    onChange={(e) => setSelectedValues({
+                      ...selectedValues,
+                      campus: e.target.value,
+                      andar: '', // Limpar seleções dependentes
+                      sala: ''
+                    })}
+                  >
+                    <option value="">{stepContentsDynamic.campus.placeholder}</option>
+                    {buildings.map((building) => (
+                      <option key={building.id} value={building.name}>
+                        {building.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="action-buttons">
+                  <button 
+                    className="search-button" 
+                    onClick={handleNextStep}
+                    disabled={!selectedValues.campus}
+                  >
+                    <img src={RightArrowIcon} alt="Próximo" className="arrow-icon" />
+                  </button>
+                </div>
+              </>
             ) : agendamentoStep === 'andar' ? (
-              
-              <div className="agendamento-details">
-                <div className="select-row">
-                  <div className="select-group">
-                    <label>Andar</label>
-                    <select 
-                      value={selectedValues.andar}
-                      onChange={(e) => setSelectedValues({
-                        ...selectedValues,
-                        andar: e.target.value,
-                        sala: '' // Limpar sala ao mudar andar
-                      })}
-                    >
-                      <option value="">Escolher Andar</option>
-                      {floors.map(floor => (
-                        <option key={floor.id} value={floor.name}>
-                          {floor.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="select-group">
-                    <label>Sala</label>
-                    <select 
-                      value={selectedValues.sala}
-                      onChange={(e) => setSelectedValues({
-                        ...selectedValues,
-                        sala: e.target.value
-                      })}
-                      disabled={!selectedValues.andar}
-                    >
-                      <option value="">Escolher Sala</option>
-                      {spaces.map(space => (
-                        <option key={space.id} value={space.name}>
-                          {space.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="time-selection">
-                  <label>Selecione o horário</label>
-                  <div className="time-inputs">
-                    <div className="time-group">
-                      <label>Começo</label>
-                      <input
-                        type="time"
-                        value={timeRange.start}
-                        onChange={(e) => setTimeRange({...timeRange, start: e.target.value})}
-                        min="07:00"
-                        max="22:00"
-                      />
+              <>
+                <div className="agendamento-details">
+                  <div className="select-row">
+                    <div className="select-group">
+                      <label>Andar</label>
+                      <select 
+                        value={selectedValues.andar}
+                        onChange={(e) => setSelectedValues({
+                          ...selectedValues,
+                          andar: e.target.value,
+                          sala: '' // Limpar sala ao mudar andar
+                        })}
+                      >
+                        <option value="">Escolher Andar</option>
+                        {floors.map(floor => (
+                          <option key={floor.id} value={floor.name}>
+                            {floor.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="time-group">
-                      <label>Término</label>
-                      <input
-                        type="time"
-                        value={timeRange.end}
-                        onChange={(e) => setTimeRange({...timeRange, end: e.target.value})}
-                        min="07:00"
-                        max="22:00"
-                      />
+
+                    <div className="select-group">
+                      <label>Sala</label>
+                      <select 
+                        value={selectedValues.sala}
+                        onChange={(e) => setSelectedValues({
+                          ...selectedValues,
+                          sala: e.target.value
+                        })}
+                        disabled={!selectedValues.andar}
+                      >
+                        <option value="">Escolher Sala</option>
+                        {spaces.map(space => (
+                          <option key={space.id} value={space.name}>
+                            {extractRoomName(space.name)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
-                </div>
 
-                {isTimeAndLocationSelected() && (
-                  <div className="calendar-section">
-                    <DatePicker
-                      selected={selectedDate.date}
-                      onChange={(date: Date) => setSelectedDate({ date, isAvailable: true })}
-                      inline
-                      locale={ptBR}
-                      minDate={new Date()}
-                      showMonthYearPicker={false}
-                      monthsShown={1}
-                      fixedHeight
-                      openToDate={currentDate}
-                      dayClassName={getDayClassName}
-                      renderCustomHeader={({ date }) => (
-                        <div className="calendar-header">
-                          <div className="month-navigation">
-                            <button 
-                              className="calendar-nav prev" 
-                              onClick={handlePrevMonth}
-                              disabled={isFirstMonth(currentDate)}
-                            >
-                              <img src={RightArrowIcon} alt="Mês anterior" className="back-icon" />
-                            </button>
-                            <span className="month-title">
-                              {format(date, 'MMMM yyyy', { locale: ptBR })}
-                            </span>
-                            <button className="calendar-nav next" onClick={handleNextMonth}>
-                              <img src={RightArrowIcon} alt="Próximo mês" className="arrow-icon" />
-                            </button>
-                          </div>
-                          <div className="calendar-legend">
-                            <div className="legend-item">
-                              <span className="legend-dot disponivel"></span>
-                              <span>Disponível</span>
-                            </div>
-                            <div className="legend-item">
-                              <span className="legend-dot ocupado"></span>
-                              <span>Ocupado</span>
-                            </div>
-                            <div className="legend-item">
-                              <span className="legend-dot selecionado"></span>
-                              <span>Selecionado</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    />
+                  <div className="time-selection">
+                    <label>Selecione o horário</label>
+                    <div className="time-inputs">
+                      <div className="time-group">
+                        <label>Começo</label>
+                        <input
+                          type="time"
+                          value={timeRange.start}
+                          onChange={(e) => setTimeRange({...timeRange, start: e.target.value})}
+                          min="07:00"
+                          max="22:00"
+                        />
+                      </div>
+                      <div className="time-group">
+                        <label>Término</label>
+                        <input
+                          type="time"
+                          value={timeRange.end}
+                          onChange={(e) => setTimeRange({...timeRange, end: e.target.value})}
+                          min="07:00"
+                          max="22:00"
+                        />
+                      </div>
+                    </div>
                   </div>
-                )}
+
+                  {isTimeAndLocationSelected() && (
+                    <div className="calendar-section">
+                      <DatePicker
+                        selected={selectedDate.date}
+                        onChange={(date: Date) => setSelectedDate({ date, isAvailable: true })}
+                        inline
+                        locale={ptBR}
+                        minDate={new Date()}
+                        showMonthYearPicker={false}
+                        monthsShown={1}
+                        fixedHeight
+                        openToDate={currentDate}
+                        dayClassName={getDayClassName}
+                        renderCustomHeader={({ date }) => (
+                          <div className="calendar-header">
+                            <div className="month-navigation">
+                              <button 
+                                className="calendar-nav prev" 
+                                onClick={handlePrevMonth}
+                                disabled={isFirstMonth(currentDate)}
+                              >
+                                <img src={RightArrowIcon} alt="Mês anterior" className="back-icon" />
+                              </button>
+                              <span className="month-title">
+                                {format(date, 'MMMM yyyy', { locale: ptBR })}
+                              </span>
+                              <button className="calendar-nav next" onClick={handleNextMonth}>
+                                <img src={RightArrowIcon} alt="Próximo mês" className="arrow-icon" />
+                              </button>
+                            </div>
+                            <div className="calendar-legend">
+                              <div className="legend-item">
+                                <span className="legend-dot disponivel"></span>
+                                <span>Disponível</span>
+                              </div>
+                              <div className="legend-item">
+                                <span className="legend-dot ocupado"></span>
+                                <span>Ocupado</span>
+                              </div>
+                              <div className="legend-item">
+                                <span className="legend-dot selecionado"></span>
+                                <span>Selecionado</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      />
+                    </div>
+                  )}
+                </div>
 
                 <div className="action-buttons">
                   <button 
@@ -817,11 +793,9 @@ export const Agendamento = (): JSX.Element => {
                     <img src={RightArrowIcon} alt="Próximo" className="arrow-icon" />
                   </button>
                 </div>
-              </div>
+              </>
             ) : agendamentoStep === 'confirmacao' ? (
               <div className="confirmacao-agendamento">
-                <h2>Novo Agendamento</h2>
-                
                 <div className="selected-details">
                   <div className="detail-chip-location">
                     <img src={Campusico} alt="Campus" />
@@ -829,11 +803,15 @@ export const Agendamento = (): JSX.Element => {
                   </div>
                   <div className="detail-chip-location">
                     <img src={PingIcon} alt="Location" />
-                    <span>{`${bookingDetails.sala}`}</span>
+                    <span>{extractRoomName(bookingDetails.sala)}</span>
                   </div>
                   <div className="detail-chip-time">
                     <img src={Calendario} alt="Data" />
-                    <span>{`${bookingDetails.data} ${bookingDetails.horario.inicio} às ${bookingDetails.horario.fim}`}</span>
+                    <span>{bookingDetails.data}</span>
+                  </div>
+                  <div className="detail-chip-time">
+                    <img src={Relogio} alt="Horário" />
+                    <span>{`${bookingDetails.horario.inicio} às ${bookingDetails.horario.fim}`}</span>
                   </div>
                 </div>
 
@@ -899,8 +877,7 @@ export const Agendamento = (): JSX.Element => {
               </div>
             ) : agendamentoStep === 'resumo' ? (
               <div className="resumo-agendamento">
-                <h2>Novo Agendamento</h2>
-                <h3>Resumo</h3>
+                <h2>Resumo</h2>
                 
                 <div className="resumo-content">
                   <div className="resumo-group">
@@ -910,28 +887,28 @@ export const Agendamento = (): JSX.Element => {
                     </div>
                     <div className="resumo-item">
                       <span className="label">Sala:</span>
-                      <span className="value">{bookingDetails.sala}</span>
+                      <span className="value">{extractRoomName(bookingDetails.sala)}</span>
                     </div>
                   </div>
 
                   <div className="resumo-group">
                     <div className="resumo-item">
-                      <span className="label">Data:</span>
+                      <span className="label-2">Data:</span>
                       <span className="value">{bookingDetails.data}</span>
                     </div>
                     <div className="resumo-item">
-                      <span className="label">Horário:</span>
+                      <span className="label-2">Horário:</span>
                       <span className="value">{`${bookingDetails.horario.inicio} às ${bookingDetails.horario.fim}`}</span>
                     </div>
                   </div>
 
                   <div className="resumo-group">
                     <div className="resumo-item">
-                      <span className="label">Curso:</span>
+                      <span className="label-2">Curso:</span>
                       <span className="value">{bookingDetails.curso}</span>
                     </div>
                     <div className="resumo-item">
-                      <span className="label">Contato:</span>
+                      <span className="label-2">Contato:</span>
                       <span className="value">{bookingDetails.telefone}</span>
                     </div>
                   </div>
@@ -939,7 +916,7 @@ export const Agendamento = (): JSX.Element => {
                   {bookingDetails.observacao && (
                     <div className="resumo-group">
                       <div className="resumo-item">
-                        <span className="label">Obs:</span>
+                        <span className="label-2">Obs:</span>
                         <span className="value">{bookingDetails.observacao}</span>
                       </div>
                     </div>
@@ -958,7 +935,6 @@ export const Agendamento = (): JSX.Element => {
               </div>
             ) : agendamentoStep === 'sucesso' ? (
               <div className="sucesso-agendamento">
-                <h2>Novo Agendamento</h2>
                 <h3>Tudo pronto!</h3>
                 
                 <div className="sucesso-content">
@@ -967,7 +943,7 @@ export const Agendamento = (): JSX.Element => {
                   <p className="sucesso-submessage">Mandaremos uma mensagem para te avisar da sua reserva</p>
                 </div>
 
-                <button className="concluir-button" onClick={() => setShowNovoAgendamento(false)}>
+                <button className="conclude-button" onClick={() => setShowNovoAgendamento(false)}>
                   <img src={CheckIcon} alt="Confirmar" />
                   <span>Concluir</span>
                 </button>
@@ -979,4 +955,15 @@ export const Agendamento = (): JSX.Element => {
       </main>
     </div>
   );
+};
+
+// Função auxiliar para extrair o nome da sala (adicione se não existir)
+const extractRoomName = (fullName: string) => {
+  // Procura pelo último grupo após um hífen ou barra
+  const matches = fullName.match(/[-/]\s*([^-/]+)$/);
+  if (matches && matches[1]) {
+    return matches[1].trim();
+  }
+  // Se não encontrar o padrão, retorna o nome original
+  return fullName;
 };
