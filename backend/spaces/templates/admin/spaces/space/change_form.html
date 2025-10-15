@@ -1,39 +1,61 @@
 {% extends "admin/change_form.html" %}
-{% load i18n admin_urls static admin_modify %}
+{% load static %}
 
-{% block extrahead %}{{ block.super }}
-<script type="text/javascript" src="{% static 'admin/js/jquery.init.js' %}"></script>
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/floor-plan.css' %}">
 {% endblock %}
 
 {% block content %}
-<div id="content-main">
-    {% block object-tools %}
-        {{ block.super }}
-    {% endblock %}
-    <form {% if has_file_field %}enctype="multipart/form-data" {% endif %}action="{{ form_url }}" method="post" id="{{ opts.model_name }}_form" novalidate>
-        {% csrf_token %}
-        {% block form_top %}{% endblock %}
-        {{ adminform.form.media }}
-        {% if errors %}
-            <p class="errornote">
-            {% if errors|length == 1 %}{% trans "Please correct the error below." %}{% else %}{% trans "Please correct the errors below." %}{% endif %}
-            </p>
-            {{ adminform.form.non_field_errors }}
-        {% endif %}
-        {% block field_sets %}
-            {% for fieldset in adminform %}
-                {% include "admin/includes/fieldset.html" %}
-            {% endfor %}
-        {% endblock %}
-        {% block after_field_sets %}{% endblock %}
-        {% block inline_field_sets %}
-            {% for inline_admin_formset in inline_admin_formsets %}
-                {% include inline_admin_formset.opts.template %}
-            {% endfor %}
-        {% endblock %}
-        {% block submit_buttons_bottom %}
-            {% submit_row %}
-        {% endblock %}
-    </form>
+{{ block.super }}
+<div id="floor-plan-container">
+    <div id="floor-plan-image"></div>
 </div>
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<script type="text/javascript">
+    django.jQuery(document).ready(function() {
+        // Quando o prédio for selecionado
+        django.jQuery('select[name="building"]').on('change', function() {
+            var buildingId = django.jQuery(this).val();
+            var floorSelect = django.jQuery('select[name="floor_name"]');
+            
+            if (buildingId) {
+                // Buscar os andares do prédio
+                django.jQuery.get('/api/buildings/' + buildingId + '/floors/', function(data) {
+                    floorSelect.empty().append('<option value="">---------</option>');
+                    data.forEach(function(floor) {
+                        floorSelect.append(
+                            '<option value="' + floor.name + '">' + floor.name + '</option>'
+                        );
+                    });
+                });
+            } else {
+                floorSelect.empty().append('<option value="">---------</option>');
+            }
+        });
+
+        // Quando o andar for selecionado
+        django.jQuery('select[name="floor_name"]').on('change', function() {
+            var buildingId = django.jQuery('select[name="building"]').val();
+            var floorName = django.jQuery(this).val();
+            
+            if (buildingId && floorName) {
+                // Buscar a imagem do andar
+                django.jQuery.get('/admin/spaces/space/get_floor_plan/' + buildingId + '/' + encodeURIComponent(floorName) + '/', function(data) {
+                    if (data.image_url) {
+                        var container = django.jQuery('#floor-plan-image');
+                        if (container.length === 0) {
+                            container = django.jQuery('<div id="floor-plan-image" style="margin-top: 20px;"></div>');
+                            django.jQuery('#floor-plan-container').append(container);
+                        }
+                        container.html('<img src="' + data.image_url + '" style="max-width: 100%;">');
+                    }
+                });
+            }
+        });
+    });
+</script>
 {% endblock %}

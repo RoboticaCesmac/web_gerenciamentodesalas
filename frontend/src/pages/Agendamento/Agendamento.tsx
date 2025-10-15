@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Agendamento.css';
-import logoImg from '../../assets/logo-CESMAC-redux.svg'; // ajuste o caminho se necessário
+import logoImg from '../../assets/logo-CESMAC-redux.svg';
 import Campusico from '../../assets/Campus-ico.svg';
-import userImg from '../../assets/Icones-Perfil.svg'; // adicione uma imagem de perfil padrão
-import PingIcon from '../../assets/ping.svg'; // Importe o ícone de localização
+import userImg from '../../assets/Icones-Perfil.svg';
+import PingIcon from '../../assets/ping.svg';
 import PlusIcon from '../../assets/Plus.svg';
 import RightArrowIcon from '../../assets/Right-Arrow.svg';
 import DatePicker from 'react-datepicker';
@@ -15,11 +15,10 @@ import Calendario from '../../assets/Calendario.svg';
 import ChapeuIcon from '../../assets/chapeu.svg';
 import TelefoneIcon from '../../assets/telefone.svg';
 import MensagemIcon from '../../assets/Icones-Mensagem.svg';
-import CheckIcon from '../../assets/check.svg'; // Importe o ícone de confirmação
+import CheckIcon from '../../assets/check.svg';
 import BigCheckIcon from '../../assets/Big-Check.svg';
-import { getUserProfile, getBuildings, getFloorsByBuilding, getSpacesByFloor, getUserReservations, createReservation } from '../../services/api';
+import { api, getUserProfile, getUserReservations, getBuildings, getFloorsByBuilding, getSpacesByFloor, createReservation } from '../../services/api';
 
-// Update the interface to include step options
 interface StepContent {
   title: string;
   label: string;
@@ -37,32 +36,18 @@ interface SelectedDate {
   isAvailable: boolean;
 }
 
-
-
-// Add this interface for unavailable times
 interface UnavailableTime {
   date: string;
   times: string[];
 }
 
-// Add this interface for day status
 interface DayStatus {
-  date: string; // format: 'YYYY-MM-DD'
+  date: string;
   status: 'disponivel' | 'ocupado' | 'selecionado';
 }
 
-// Add mock data for day statuses (you should replace this with your API data)
-const mockDayStatuses: DayStatus[] = [
-  { date: '2025-10-12', status: 'disponivel' },
-  { date: '2025-10-14', status: 'ocupado' },
-  { date: '2025-10-19', status: 'ocupado' },
-  { date: '2025-10-25', status: 'ocupado' },
-];
-
-// Update the step type
 type AgendamentoStep = 'campus' | 'andar' | 'sala' | 'confirmacao' | 'resumo' | 'sucesso';
 
-// Add new interface for booking details
 interface BookingDetails {
   campus: string;
   andar: string;
@@ -90,16 +75,17 @@ interface Reservation {
   id: number;
   title: string;
   description: string;
-  space_name: string;
+  space: number;
+  space_name: number;
+  building: number;
   building_name: string;
   start_datetime: string;
   end_datetime: string;
-  status: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'canceled';
   user_email: string;
-  capacity: number; // Adicione este campo
+  capacity: number;
 }
 
-// Adicione estas interfaces no início do arquivo, após as existentes
 interface Building {
   id: number;
   name: string;
@@ -107,7 +93,7 @@ interface Building {
 
 interface Floor {
   id: number;
-  name: string;
+  name: string;  // Isso vai receber o floor_name do backend
 }
 
 interface Space {
@@ -116,48 +102,166 @@ interface Space {
 }
 
 export const Agendamento = (): JSX.Element => {
-  // Adicione estes estados
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [floors, setFloors] = useState<Floor[]>([]);
   const [spaces, setSpaces] = useState<Space[]>([]);
-  
-  // Add new states
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userReservations, setUserReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [historico, setHistorico] = useState<Reservation[]>([]); // Primeiro, adicione o estado para histórico
+  const [historico, setHistorico] = useState<Reservation[]>([]);
   const [mostrarTodosAgendamentos, setMostrarTodosAgendamentos] = useState(false);
   const [mostrarTodoHistorico, setMostrarTodoHistorico] = useState(false);
-  const [showNovoAgendamento, setShowNovoAgendamento] = useState(false); // Add new state for controlling visibility
-  const [agendamentoStep, setAgendamentoStep] = useState<AgendamentoStep>('campus'); // Add new state for steps
-
-  // Add ref for novo-agendamento section
-  const novoAgendamentoRef = useRef<HTMLDivElement>(null);
-
-  // Add this state for selected values
+  const [showNovoAgendamento, setShowNovoAgendamento] = useState(false);
+  const [agendamentoStep, setAgendamentoStep] = useState<AgendamentoStep>('campus');
   const [selectedValues, setSelectedValues] = useState({
     campus: '',
     andar: '',
     sala: ''
   });
-
   const [timeRange, setTimeRange] = useState<TimeRange>({ start: '', end: '' });
   const [selectedDate, setSelectedDate] = useState<SelectedDate>({
     date: null,
     isAvailable: true
   });
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [bookingDetails, setBookingDetails] = useState<BookingDetails>({
+    campus: '',
+    andar: '',
+    sala: '',
+    data: '',
+    horario: { inicio: '', fim: '' },
+    curso: '',
+    telefone: '',
+    observacao: ''
+  });
 
-  // Update the useEffect that fetches data
+  // Novos estados para disponibilidade
+  const [dayStatuses, setDayStatuses] = useState<DayStatus[]>([]);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+
+  const novoAgendamentoRef = useRef<HTMLDivElement>(null);
+
+  // Função para verificar disponibilidade de um dia específico
+  const checkDayAvailability = async (date: Date) => {
+    if (!selectedValues.sala || !timeRange.start || !timeRange.end) return 'disponivel';
+    
+    const selectedSpace = spaces.find(space => space.name === selectedValues.sala);
+    if (!selectedSpace) return 'disponivel';
+
+    try {
+      // Criar datas com o horário selecionado
+      const startDateTime = new Date(date);
+      const [startHours, startMinutes] = timeRange.start.split(':').map(Number);
+      startDateTime.setHours(startHours, startMinutes, 0, 0);
+
+      const endDateTime = new Date(date);
+      const [endHours, endMinutes] = timeRange.end.split(':').map(Number);
+      endDateTime.setHours(endHours, endMinutes, 0, 0);
+
+      // Ajustar para timezone de Brasília
+      const brazilTimeZone = '-03:00';
+      const startISOString = startDateTime.toISOString().replace('Z', brazilTimeZone);
+      const endISOString = endDateTime.toISOString().replace('Z', brazilTimeZone);
+
+      const response = await api.get(`/api/spaces/${selectedSpace.id}/availability/`, {
+        params: {
+          start_time: startISOString,
+          end_time: endISOString
+        }
+      });
+
+      console.log('Checking availability:', {
+        date: date.toLocaleDateString(),
+        time: `${timeRange.start}-${timeRange.end}`,
+        response: response.data
+      });
+
+      // Se houver conflitos, marcar como ocupado
+      if (!response.data.is_available) {
+        const conflicts = response.data.conflicting_reservations || [];
+        // Verificar se todas as reservas conflitantes são do usuário atual
+        const allMine = conflicts.every((conflict: any) => conflict.is_mine);
+        
+        // Se todas as reservas são minhas e sou admin/staff, mostrar como disponível
+        if (allMine && userProfile?.is_staff) {
+          return 'disponivel';
+        }
+        return 'ocupado';
+      }
+
+      return 'disponivel';
+    } catch (error) {
+      console.error('Erro ao verificar disponibilidade:', error);
+      return 'disponivel';
+    }
+  };
+
+  // Função para carregar disponibilidade do mês atual
+  const loadMonthAvailability = async () => {
+    if (!selectedValues.sala || !timeRange.start || !timeRange.end || loadingAvailability) return;
+
+    setLoadingAvailability(true);
+    
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const newDayStatuses: DayStatus[] = [];
+    
+    // Verificar todos os dias do mês
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      if (date < new Date()) continue;
+
+      try {
+        const status = await checkDayAvailability(date);
+        console.log(`Checking day ${date.toLocaleDateString()} at ${timeRange.start}-${timeRange.end}:`, status);
+        
+        newDayStatuses.push({
+          date: format(date, 'yyyy-MM-dd'),
+          status
+        });
+      } catch (error) {
+        console.error(`Error checking day ${date.toLocaleDateString()}:`, error);
+      }
+    }
+
+    setDayStatuses(newDayStatuses);
+    setLoadingAvailability(false);
+  };
+
+  // Atualizar a função getDayClassName
+  const getDayClassName = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    
+    if (selectedDate.date && format(selectedDate.date, 'yyyy-MM-dd') === dateStr) {
+      return 'selecionado';
+    }
+
+    const dayStatus = dayStatuses.find(d => d.date === dateStr);
+    
+    if (!dayStatus && date >= new Date()) {
+      return 'disponivel';
+    }
+
+    return dayStatus?.status || 'ocupado';
+  };
+
+  // Carregar disponibilidade quando a sala ou mês mudar
+  useEffect(() => {
+    if (selectedValues.sala && timeRange.start && timeRange.end && agendamentoStep === 'andar') {
+      loadMonthAvailability();
+    }
+  }, [selectedValues.sala, timeRange.start, timeRange.end, agendamentoStep, currentDate]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const profile = await getUserProfile();
-        console.log('Profile data:', profile); // Add this log
+        console.log('Profile data:', profile);
         setUserProfile(profile);
       } catch (err) {
         console.error('Error loading profile:', err);
@@ -170,12 +274,11 @@ export const Agendamento = (): JSX.Element => {
     fetchData();
   }, []);
 
-  // Atualizar useEffect para carregar prédios
   useEffect(() => {
     const fetchBuildings = async () => {
       try {
         const data = await getBuildings();
-        console.log('Buildings received:', data); // Debug
+        console.log('Buildings received:', data);
         setBuildings(data);
       } catch (err) {
         console.error('Erro ao carregar prédios:', err);
@@ -185,16 +288,15 @@ export const Agendamento = (): JSX.Element => {
     fetchBuildings();
   }, []);
 
-  // Modifique o useEffect para carregar andares quando um campus é selecionado
   useEffect(() => {
     const fetchFloors = async () => {
       if (selectedValues.campus) {
         const building = buildings.find(b => b.name === selectedValues.campus);
-        console.log('Selected building:', building); // Debug
+        console.log('Selected building:', building);
         if (building?.id) {
           try {
             const data = await getFloorsByBuilding(building.id);
-            console.log('Floors received:', data); // Debug
+            console.log('Floors received:', data);
             setFloors(data);
           } catch (err) {
             console.error('Erro ao carregar andares:', err);
@@ -205,19 +307,19 @@ export const Agendamento = (): JSX.Element => {
     fetchFloors();
   }, [selectedValues.campus, buildings]);
 
-  // Modifique o useEffect para carregar salas quando um andar é selecionado
   useEffect(() => {
     const fetchSpaces = async () => {
       if (selectedValues.andar) {
         const floor = floors.find(f => f.name === selectedValues.andar);
-        console.log('Selected floor:', floor); // Debug
+        console.log('Selected floor:', floor);
         if (floor?.id) {
           try {
             const data = await getSpacesByFloor(floor.id);
-            console.log('Spaces received:', data); // Debug
+            console.log('Spaces received:', data);
             setSpaces(data);
           } catch (err) {
             console.error('Erro ao carregar salas:', err);
+            setError('Erro ao carregar salas disponíveis');
           }
         }
       }
@@ -225,7 +327,6 @@ export const Agendamento = (): JSX.Element => {
     fetchSpaces();
   }, [selectedValues.andar, floors]);
 
-  // Atualizar os conteúdos dinâmicos do formulário
   const stepContentsDynamic = {
     campus: {
       title: 'Campus',
@@ -267,75 +368,194 @@ export const Agendamento = (): JSX.Element => {
     }
   };
 
-  // Adicione esta função auxiliar no começo do componente
+  // Atualizar a função scrollToBottom
   const scrollToBottom = () => {
+    // Aumentar o timeout para dar tempo do calendário renderizar
     setTimeout(() => {
-      window.scrollTo({
-        top: document.documentElement.scrollHeight,
-        behavior: 'smooth'
-      });
-    }, 100);
+      const novoAgendamentoElement = novoAgendamentoRef.current;
+      if (novoAgendamentoElement) {
+        novoAgendamentoElement.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'end'
+        });
+      }
+    }, 300); // Aumentado para 300ms
   };
 
-  // Update the add button click handler
+  // Adicionar um useEffect para monitorar mudanças que devem triggar o scroll
+  useEffect(() => {
+    if (selectedValues.sala && timeRange.start && timeRange.end) {
+      scrollToBottom();
+    }
+  }, [selectedValues.sala, timeRange.start, timeRange.end]);
+
   const handleAddClick = () => {
     setShowNovoAgendamento(true);
     setAgendamentoStep('campus');
     scrollToBottom();
   };
 
-  // Update handleNextStep function
-  const handleNextStep = async () => {
-    if (agendamentoStep === 'campus' && selectedValues.campus) {
+  const handleEdit = async (reservation: Reservation) => {
+    try {
+      setShowNovoAgendamento(true);
       setAgendamentoStep('andar');
-      scrollToBottom();
-    } else if (agendamentoStep === 'andar' && selectedValues.sala && timeRange.start && timeRange.end && selectedDate.date) {
-      // Save the current selections before moving to confirmation
-      setBookingDetails({
-        ...bookingDetails,
-        campus: selectedValues.campus,
-        andar: selectedValues.andar,
-        sala: selectedValues.sala,
-        data: format(selectedDate.date, 'dd/MM/yyyy'),
-        horario: {
-          inicio: timeRange.start,
-          fim: timeRange.end
-        }
-      });
-      setAgendamentoStep('confirmacao');
-      scrollToBottom();
-    } else if (agendamentoStep === 'confirmacao' && bookingDetails.curso && bookingDetails.telefone) {
-      setAgendamentoStep('resumo');
-      scrollToBottom();
-    } else if (agendamentoStep === 'resumo') {
-      // Automatically go to sucesso step after resumo
-      setAgendamentoStep('sucesso');
-      scrollToBottom();
-    } else if (agendamentoStep === 'sucesso') {
-      try {
-        const reservationData = {
-          building: bookingDetails.campus,
-          space: bookingDetails.sala,
-          start_datetime: `${bookingDetails.data}T${bookingDetails.horario.inicio}`,
-          end_datetime: `${bookingDetails.data}T${bookingDetails.horario.fim}`,
-          title: bookingDetails.curso,
-          description: bookingDetails.observacao || 'Sem observações',
-        };
 
-        await createReservation(reservationData);
-        setAgendamentoStep('sucesso');
-        
-        // Refresh reservations list
-        const newReservations = await getUserReservations();
-        setUserReservations(newReservations);
-      } catch (err) {
-        setError('Erro ao criar agendamento');
-        console.error(err);
-      }
+      setSelectedValues({
+        campus: reservation.building_name,
+        andar: '',
+        sala: ''
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Aqui vamos usar o floor_name que veio da reserva
+      const floorName = reservation.floor_name || reservation.space_name.split(' ')[0];
+      
+      setSelectedValues(prev => ({
+        ...prev,
+        andar: floorName
+      }));
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      setSelectedValues(prev => ({
+        ...prev,
+        andar: floorName,
+        sala: reservation.space_name
+      }));
+
+      const startDate = new Date(reservation.start_datetime);
+      const endDate = new Date(reservation.end_datetime);
+
+      setSelectedDate({
+        date: startDate,
+        isAvailable: true
+      });
+
+      setTimeRange({
+        start: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        end: endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+
+      setBookingDetails({
+        campus: reservation.building_name,
+        andar: floorName,
+        sala: reservation.space_name,
+        data: startDate.toLocaleDateString(),
+        horario: {
+          inicio: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          fim: endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        },
+        curso: reservation.title || '',
+        telefone: '',
+        observacao: reservation.description || ''
+      });
+
+      scrollToBottom();
+
+    } catch (error) {
+      console.error('Erro ao preparar edição:', error);
+      setError('Erro ao carregar dados para edição');
     }
   };
 
-  // Update handleBackStep function
+  const handleNextStep = async () => {
+    if (agendamentoStep === 'andar' && !canProceedToNext()) {
+      return;
+    }
+    
+    if (agendamentoStep === 'resumo') {
+      try {
+        const [day, month, year] = bookingDetails.data.split('/');
+        const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        
+        const selectedSpace = spaces.find(space => space.name === bookingDetails.sala);
+        if (!selectedSpace) {
+          setError('Sala não encontrada');
+          return;
+        }
+
+        // Criar datas com timezone de Brasília
+        const startDate = new Date(`${formattedDate}T${bookingDetails.horario.inicio}:00-03:00`);
+        const endDate = new Date(`${formattedDate}T${bookingDetails.horario.fim}:00-03:00`);
+
+        // Verificar disponibilidade
+        const availabilityResponse = await api.get(`/api/spaces/${selectedSpace.id}/availability/`, {
+          params: {
+            start_time: startDate.toISOString(),
+            end_time: endDate.toISOString()
+          }
+        });
+
+        console.log('Verificando disponibilidade:', {
+          start: startDate.toLocaleString(),
+          end: endDate.toLocaleString(),
+          response: availabilityResponse.data
+        });
+
+        if (!availabilityResponse.data.is_available) {
+          const conflicts = availabilityResponse.data.conflicting_reservations;
+          if (conflicts && conflicts.length > 0) {
+            const conflictMessages = conflicts.map((conflict: any) => {
+              const conflictStart = new Date(conflict.start_datetime);
+              const conflictEnd = new Date(conflict.end_datetime);
+              return `${conflictStart.toLocaleTimeString()} - ${conflictEnd.toLocaleTimeString()}`;
+            }).join('\n');
+            
+            setError(`Horário indisponível. Já existe(m) reserva(s) para:\n${conflictMessages}`);
+            return;
+          }
+        }
+
+        // Se disponível, criar a reserva
+        const reservationData = {
+          space: selectedSpace.id,
+          start_datetime: startDate.toISOString(),
+          end_datetime: endDate.toISOString(),
+          title: bookingDetails.curso,
+          description: bookingDetails.observacao || '',
+          phone: bookingDetails.telefone
+        };
+
+        console.log('Criando reserva:', reservationData);
+
+        const response = await createReservation(reservationData);
+        
+        if (response.ok) {
+          setAgendamentoStep('sucesso');
+          const updatedReservations = await getUserReservations();
+          setReservations(updatedReservations);
+        } else {
+          setError(response.error || 'Erro ao criar reserva');
+        }
+      } catch (err) {
+        console.error('Erro:', err);
+        setError('Erro ao criar agendamento. Tente novamente.');
+      }
+    } else {
+      // Handle other steps as before
+      if (agendamentoStep === 'campus' && selectedValues.campus) {
+        setAgendamentoStep('andar');
+      } else if (agendamentoStep === 'andar' && isTimeAndLocationSelected()) {
+        setBookingDetails(prev => ({
+          ...prev,
+          campus: selectedValues.campus,
+          andar: selectedValues.andar,
+          sala: selectedValues.sala,
+          data: selectedDate.date ? selectedDate.date.toLocaleDateString() : '',
+          horario: {
+            inicio: timeRange.start,
+            fim: timeRange.end
+          }
+        }));
+        setAgendamentoStep('confirmacao');
+      } else if (agendamentoStep === 'confirmacao' && bookingDetails.curso && bookingDetails.telefone) {
+        setAgendamentoStep('resumo');
+      }
+      scrollToBottom();
+    }
+  };
+
   const handleBackStep = () => {
     if (agendamentoStep === 'resumo') {
       setAgendamentoStep('confirmacao');
@@ -354,20 +574,11 @@ export const Agendamento = (): JSX.Element => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
-  // Add this before the component
   const isFirstMonth = (date: Date) => {
     const today = new Date();
     return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
   };
 
-  // Add this function inside your component
-  const getDayClassName = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const dayStatus = mockDayStatuses.find(d => d.date === dateStr);
-    return dayStatus?.status || 'ocupado'; // Default to ocupado if status is unknown
-  };
-
-  // Add this function to check if time and location are selected
   const isTimeAndLocationSelected = () => {
     return (
       selectedValues.andar !== '' &&
@@ -377,19 +588,17 @@ export const Agendamento = (): JSX.Element => {
     );
   };
 
-  // Inside your component, add new state:
-  const [bookingDetails, setBookingDetails] = useState<BookingDetails>({
-    campus: '',
-    andar: '',
-    sala: '',
-    data: '',
-    horario: { inicio: '', fim: '' },
-    curso: '',
-    telefone: '',
-    observacao: ''
-  });
+  // Adicione uma nova função para verificar se pode prosseguir
+  const canProceedToNext = () => {
+    return (
+      selectedValues.andar !== '' &&
+      selectedValues.sala !== '' &&
+      timeRange.start !== '' &&
+      timeRange.end !== '' &&
+      selectedDate.date !== null
+    );
+  };
 
-  // Atualizar o useEffect que carrega os agendamentos
   useEffect(() => {
     const fetchReservations = async () => {
       try {
@@ -401,7 +610,7 @@ export const Agendamento = (): JSX.Element => {
         
         setUserProfile(userProfileData);
         setReservations(reservationsData);
-        setHistorico(reservationsData); // O histórico agora usa os mesmos dados
+        setHistorico(reservationsData);
         
         setLoading(false);
       } catch (error) {
@@ -414,7 +623,6 @@ export const Agendamento = (): JSX.Element => {
     fetchReservations();
   }, []);
 
-  // Adicione esta função de mapeamento de status
   const mapStatusToClassName = (status: string) => {
     const statusMap: Record<string, string> = {
       'approved': 'confirmado',
@@ -426,7 +634,6 @@ export const Agendamento = (): JSX.Element => {
     return statusMap[status] || status;
   };
 
-  // E adicione esta nova função para traduzir o texto do status
   const getStatusText = (status: string) => {
     const statusTextMap: Record<string, string> = {
       'approved': 'Confirmado',
@@ -438,7 +645,6 @@ export const Agendamento = (): JSX.Element => {
     return statusTextMap[status] || status;
   };
 
-  // Atualize a função renderAgendamentos
   const renderAgendamentos = () => {
     if (loading) return <p>Carregando...</p>;
     if (error) return <p>{error}</p>;
@@ -461,7 +667,12 @@ export const Agendamento = (): JSX.Element => {
               </div>
               <div className="card-right">
                 <div className="header-buttons">
-                  <button className="edit-button">Editar</button>
+                  <button 
+                    className="edit-button" 
+                    onClick={() => handleEdit(reservation)}
+                  >
+                    Editar
+                  </button>
                   <button className="cancel-button-small">Cancelar</button>
                 </div>
                 <div className="local-details">
@@ -490,6 +701,81 @@ export const Agendamento = (): JSX.Element => {
         )}
       </>
     );
+  };
+
+  const ErrorMessage = ({ message }: { message: string }) => (
+    <div className="error-message">
+      <p>{message}</p>
+    </div>
+  );
+
+  const validateTimeRange = () => {
+    if (!timeRange.start || !timeRange.end) return false;
+    
+    const [startHour] = timeRange.start.split(':').map(Number);
+    const [endHour] = timeRange.end.split(':').map(Number);
+    
+    return startHour >= 7 && endHour <= 22 && timeRange.start < timeRange.end;
+  };
+
+  // Atualizar a função handleDateSelect (ou criar se não existir)
+  const handleDateSelect = (date: Date) => {
+    // Verificar se a data está no passado
+    if (date < new Date()) {
+      return;
+    }
+
+    // Verificar se a data está marcada como ocupada
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dayStatus = dayStatuses.find(d => d.date === dateStr);
+    
+    if (dayStatus?.status === 'ocupado') {
+      // Se estiver ocupada, não permite a seleção
+      return;
+    }
+
+    // Se estiver disponível, permite a seleção
+    setSelectedDate({
+      date,
+      isAvailable: true
+    });
+  };
+
+  // Adicione esta nova função para resetar os estados
+  const resetAgendamentoStates = () => {
+    setSelectedValues({
+      campus: '',
+      andar: '',
+      sala: ''
+    });
+    
+    setTimeRange({
+      start: '',
+      end: ''
+    });
+    
+    setSelectedDate({
+      date: null,
+      isAvailable: true
+    });
+    
+    setBookingDetails({
+      campus: '',
+      andar: '',
+      sala: '',
+      data: '',
+      horario: {
+        inicio: '',
+        fim: ''
+      },
+      curso: '',
+      telefone: '',
+      observacao: ''
+    });
+    
+    setDayStatuses([]);
+    setError(null);
+    setAgendamentoStep('campus');
   };
 
   return (
@@ -550,7 +836,7 @@ export const Agendamento = (): JSX.Element => {
                         </div>
                         <div className="card-right">
                           <div className="header-buttons">
-                            <button className="edit-button">Editar</button>
+                            <button className="edit-button" onClick={() => handleEdit(reservation)}>Editar</button>
                             <button className="cancel-button-small">Cancelar</button>
                           </div>
                           <div className="local-details">
@@ -625,6 +911,11 @@ export const Agendamento = (): JSX.Element => {
         {showNovoAgendamento && (
           <section className="novo-agendamento" ref={novoAgendamentoRef}>
             <h2>Novo Agendamento</h2>
+            {error && (
+              <div className="error-message">
+                <p>{error}</p>
+              </div>
+            )}
             {agendamentoStep === 'campus' ? (
               <>
                 <div className="filtro">
@@ -634,7 +925,7 @@ export const Agendamento = (): JSX.Element => {
                     onChange={(e) => setSelectedValues({
                       ...selectedValues,
                       campus: e.target.value,
-                      andar: '', // Limpar seleções dependentes
+                      andar: '',
                       sala: ''
                     })}
                   >
@@ -668,7 +959,7 @@ export const Agendamento = (): JSX.Element => {
                         onChange={(e) => setSelectedValues({
                           ...selectedValues,
                           andar: e.target.value,
-                          sala: '' // Limpar sala ao mudar andar
+                          sala: ''
                         })}
                       >
                         <option value="">Escolher Andar</option>
@@ -726,11 +1017,19 @@ export const Agendamento = (): JSX.Element => {
                     </div>
                   </div>
 
-                  {isTimeAndLocationSelected() && (
+                  {selectedValues.sala && timeRange.start && timeRange.end && (
                     <div className="calendar-section">
                       <DatePicker
                         selected={selectedDate.date}
-                        onChange={(date: Date) => setSelectedDate({ date, isAvailable: true })}
+                        onChange={(date: Date) => {
+                          const dateStr = format(date, 'yyyy-MM-dd');
+                          const status = dayStatuses.find(d => d.date === dateStr)?.status;
+                          
+                          setSelectedDate({ 
+                            date, 
+                            isAvailable: status === 'disponivel' 
+                          });
+                        }}
                         inline
                         locale={ptBR}
                         minDate={new Date()}
@@ -738,7 +1037,19 @@ export const Agendamento = (): JSX.Element => {
                         monthsShown={1}
                         fixedHeight
                         openToDate={currentDate}
-                        dayClassName={getDayClassName}
+                        onSelect={handleDateSelect}
+                        filterDate={(date) => {
+                          const dateStr = format(date, 'yyyy-MM-dd');
+                          const dayStatus = dayStatuses.find(d => d.date === dateStr);
+                          // Retorna true apenas para datas disponíveis ou que ainda não foram verificadas
+                          return dayStatus?.status !== 'ocupado';
+                        }}
+                        dayClassName={(date) => {
+                          if (date < new Date()) {
+                            return 'ocupado';
+                          }
+                          return getDayClassName(date);
+                        }}
                         renderCustomHeader={({ date }) => (
                           <div className="calendar-header">
                             <div className="month-navigation">
@@ -751,6 +1062,7 @@ export const Agendamento = (): JSX.Element => {
                               </button>
                               <span className="month-title">
                                 {format(date, 'MMMM yyyy', { locale: ptBR })}
+                                {loadingAvailability && ' (Carregando...)'}
                               </span>
                               <button className="calendar-nav next" onClick={handleNextMonth}>
                                 <img src={RightArrowIcon} alt="Próximo mês" className="arrow-icon" />
@@ -788,7 +1100,7 @@ export const Agendamento = (): JSX.Element => {
                   <button 
                     className="search-button" 
                     onClick={handleNextStep}
-                    disabled={!selectedValues[agendamentoStep]}
+                    disabled={!canProceedToNext()}
                   >
                     <img src={RightArrowIcon} alt="Próximo" className="arrow-icon" />
                   </button>
@@ -943,7 +1255,26 @@ export const Agendamento = (): JSX.Element => {
                   <p className="sucesso-submessage">Mandaremos uma mensagem para te avisar da sua reserva</p>
                 </div>
 
-                <button className="conclude-button" onClick={() => setShowNovoAgendamento(false)}>
+                <button 
+                  className="conclude-button" 
+                  onClick={async () => {
+                    try {
+                      // Atualizar as listas de reservas
+                      const updatedReservations = await getUserReservations();
+                      setReservations(updatedReservations);
+                      setHistorico(updatedReservations);
+                      
+                      // Resetar estados
+                      resetAgendamentoStates();
+                      
+                      // Fechar o painel de novo agendamento
+                      setShowNovoAgendamento(false);
+                    } catch (error) {
+                      console.error('Erro ao atualizar agendamentos:', error);
+                      setError('Erro ao atualizar lista de agendamentos');
+                    }
+                  }}
+                >
                   <img src={CheckIcon} alt="Confirmar" />
                   <span>Concluir</span>
                 </button>
@@ -957,13 +1288,10 @@ export const Agendamento = (): JSX.Element => {
   );
 };
 
-// Função auxiliar para extrair o nome da sala (adicione se não existir)
 const extractRoomName = (fullName: string) => {
-  // Procura pelo último grupo após um hífen ou barra
   const matches = fullName.match(/[-/]\s*([^-/]+)$/);
   if (matches && matches[1]) {
     return matches[1].trim();
   }
-  // Se não encontrar o padrão, retorna o nome original
   return fullName;
 };

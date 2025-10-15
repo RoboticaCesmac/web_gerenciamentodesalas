@@ -302,7 +302,7 @@
 }
 
 .status {
-  padding: 4px 8px;
+  
   border-radius: 4px;
   font-size: 0.875rem;
   text-transform: capitalize;
@@ -397,7 +397,7 @@
   text-align: center;
   color: #FFD700;
   font-size: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 5%;
   font-weight: 800;
 }
 
@@ -424,6 +424,11 @@
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 44px; /* Space for arrow */
+}
+
+.react-datepicker__day-names {
+  white-space: nowrap;
+  padding: 1.4rem 0 0 1.4rem;
 }
 
 .back-button, .search-button {
@@ -857,20 +862,55 @@ p {
 .calendar-nav {
   width: 32px;
   height: 32px;
-  background-color: #0069AD;
-  border-radius: 50%;
+  background-color: #0069AD !important;
+  border-radius: 50% !important;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   cursor: pointer;
   padding: 0;
+  margin: 0 8px;
 }
 
-.calendar-nav.prev .back-icon,
-.calendar-nav.next .arrow-icon {
+.calendar-nav:hover {
+  background-color: #005690 !important;
+}
+
+.calendar-nav:disabled {
+  background-color: #CCCCCC !important;
+  cursor: not-allowed;
+}
+
+.calendar-nav .back-icon,
+.calendar-nav .arrow-icon {
   width: 20px;
   height: 20px;
+  filter: brightness(0) invert(1); /* Faz o ícone ficar branco */
+}
+
+/* Ajuste o container da navegação para melhor alinhamento */
+.month-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 0 8px;
+}
+
+.month-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Estilo para o estado disabled mais visível */
+.calendar-nav:disabled .back-icon,
+.calendar-nav:disabled .arrow-icon {
+  opacity: 0.5;
 }
 
 .time-inputs {
@@ -964,6 +1004,7 @@ p {
   border-radius: 50% !important;
   font-size: 14px !important;
   position: relative;
+  
 }
 
 /* Status-based day colors */
@@ -1373,25 +1414,9 @@ p {
 
 .status {
   display: inline-block;
-  padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-}
-
-.status.pending {
-  background: #FFF3CD;
-  color: #856404;
-}
-
-.status.approved {
-  background: #D4EDDA;
-  color: #155724;
-}
-
-.status.rejected {
-  background: #F8D7DA;
-  color: #721C24;
 }
 
 .loading {
@@ -1474,4 +1499,150 @@ p {
 
 .conclude-button:active {
   transform: scale(0.98);
+}
+
+/* Sobrescrever estilos do react-datepicker */
+.react-datepicker__day-name {
+  color: #000 !important;
+  display: inline-block !important;
+  width: 1.7rem !important;
+  line-height: 1.7rem !important;
+  text-align: center !important;
+  margin: 0.186rem 0.35rem 0.166rem 0.114rem !important;
+}
+
+/* Sobrescrever estilos do react-datepicker */
+.react-datepicker__day-name {
+  color: #000 !important;
+  display: inline-block !important;
+  width: 1.7rem !important;
+  line-height: 1.7rem !important;
+  text-align: center !important;
+  margin: 0.186rem 0.35rem 0.166rem 0.114rem !important;
+}
+
+/* Garantir que nossos estilos tenham prioridade */
+.novo-agendamento .react-datepicker__day-name {
+  color: #000 !important;
+  display: inline-block !important;
+  width: 1.7rem !important;
+  line-height: 1.7rem !important;
+  text-align: center !important;
+  margin: 0.186rem 0.35rem 0.166rem 0.114rem !important;
+}
+
+/* Estilos para dias disponíveis/ocupados */
+.react-datepicker__day--disponivel {
+  background-color: #e8f5e8 !important;
+  color: #2e7d32 !important;
+  border-radius: 4px !important;
+}
+
+.react-datepicker__day--ocupado {
+  background-color: #ffebee !important;
+  color: #c62828 !important;
+  border-radius: 4px !important;
+  text-decoration: line-through !important;
+}
+
+.react-datepicker__day--selecionado {
+  background-color: #2196f3 !important;
+  color: white !important;
+  border-radius: 4px !important;
+}
+
+/* Loading state for calendar */
+.calendar-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Legend styles */
+.legend-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.legend-dot.disponivel {
+  background-color: #e8f5e8;
+  border: 2px solid #2e7d32;
+}
+
+.legend-dot.ocupado {
+  background-color: #ffebee;
+  border: 2px solid #c62828;
+}
+
+.legend-dot.selecionado {
+  background-color: #2196f3;
+  border: 2px solid #1565c0;
+}
+
+/* Calendar header styles */
+.calendar-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.month-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.month-title {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.calendar-nav {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.calendar-nav:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+}
+
+/* Estilo para dias ocupados */
+.react-datepicker__day.ocupado {
+  background-color: #ffebee !important;
+  color: #FF3B30 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+/* Quando passar o mouse por cima de dias ocupados */
+.react-datepicker__day.ocupado:hover {
+  background-color: #ffebee !important;
+  color: #FF3B30 !important;
+}
+
+/* Garantir que dias ocupados não possam ser selecionados mesmo com clique */
+.react-datepicker__day.ocupado:active,
+.react-datepicker__day.ocupado:focus {
+  background-color: #ffebee !important;
+  color: #FF3B30 !important;
+  outline: none !important;
 }

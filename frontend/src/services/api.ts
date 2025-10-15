@@ -1,20 +1,23 @@
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: 'http://localhost:8000/api'
+export const api = axios.create({
+  baseURL: 'http://localhost:8000',
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
-// Add token to all requests
-api.interceptors.request.use((config) => {
+// Interceptor para adicionar o token em todas as requisições
+api.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
   if (token) {
-    config.headers.Authorization = `Token ${token}`; // Changed from Bearer to Token
+    config.headers.Authorization = `Token ${token}`;
   }
   return config;
 });
 
 export const login = async (credentials: { email: string; password: string }) => {
-  const response = await api.post('/auth/login/', credentials);
+  const response = await api.post('/api/auth/login/', credentials);
   const { token } = response.data;
   
   // Save token
@@ -29,13 +32,13 @@ export const login = async (credentials: { email: string; password: string }) =>
 };
 
 export const getUserProfile = async () => {
-  const response = await api.get('/auth/profile/');
+  const response = await api.get('/api/auth/profile/');
   return response.data;
 };
 
 export const getUserReservations = async () => {
   try {
-    const response = await api.get('/reservations/');
+    const response = await api.get('api/reservations/');
     return response.data;
   } catch (error) {
     console.error('Erro ao buscar reservas:', error);
@@ -43,22 +46,68 @@ export const getUserReservations = async () => {
   }
 };
 
-export const createReservation = async (reservationData: any) => {
-  const response = await api.post('/reservations/', reservationData);
-  return response.data;
+export const createReservation = async (data: any) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Token não encontrado');
+    }
+
+    const response = await api.post('/api/reservations/', data, {
+      headers: {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    return { ok: true, data: response.data };
+  } catch (error: any) {
+    console.error('Erro ao criar reserva:', error.response?.data || error.message);
+    return { 
+      ok: false, 
+      error: error.response?.data?.detail || 'Erro ao criar reserva'
+    };
+  }
 };
 
 export const getBuildings = async () => {
-  const response = await api.get('/buildings/');
+  const response = await api.get('api/buildings/');
   return response.data;
 };
 
 export const getFloorsByBuilding = async (buildingId: number) => {
-  const response = await api.get(`/buildings/${buildingId}/floors/`);
+  const response = await api.get(`api/buildings/${buildingId}/floors/`);
   return response.data;
 };
 
 export const getSpacesByFloor = async (floorId: number) => {
-  const response = await api.get(`/floors/${floorId}/spaces/`);
-  return response.data;
+  try {
+    const response = await api.get(`/api/floors/${floorId}/spaces/`);
+    // Transform the response to match what the component expects
+    const spaces = response.data.map((space: any) => ({
+      id: space.id,
+      name: space.name,
+      capacity: space.capacity
+    }));
+    return spaces;
+  } catch (error) {
+    console.error('Erro ao buscar espaços:', error);
+    return [];
+  }
+};
+
+export const updateReservation = async (id: number, data: any) => {
+  const response = await fetch(`api/reservations/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to update reservation');
+  }
+  
+  return response.json();
 };

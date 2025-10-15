@@ -14,7 +14,18 @@ urlpatterns = [
     path('buildings/<int:building_id>/floors/', views.get_building_floors),
     path('floors/<int:floor_id>/spaces/', views.get_floor_spaces),
     path('profile/', views.get_user_profile, name='user-profile'),
+    
+    # URLs específicas para actions personalizadas
+    path('spaces/<int:pk>/availability/', views.SpaceViewSet.as_view({'get': 'availability'}), name='space-availability'),
+    
     # Adicione estas URLs específicas para reservas
     path('reservations/user/', views.ReservationViewSet.as_view({'get': 'list'}), name='user-reservations'),
     path('reservations/<int:pk>/', views.ReservationViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='reservation-detail'),
+    path('reservations/', views.ReservationViewSet.as_view({
+        'get': 'list',
+        'post': 'create'
+    }), name='reservation-list'),
+
+    # URL para obter os nomes dos andares para o admin
+    path('admin/spaces/get_floor_names/<int:building_id>/', views.get_floor_names_for_admin, name='get_floor_names_for_admin'),
 ]
