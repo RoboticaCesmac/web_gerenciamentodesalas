@@ -83,9 +83,10 @@ interface Reservation {
   title: string;
   description: string;
   space: number;
-  space_name: number;
+  space_name: string; // Changed from number to string
   building: number;
   building_name: string;
+  floor_name: string; // Added this field
   start_datetime: string;
   end_datetime: string;
   status: 'pending' | 'approved' | 'rejected' | 'completed' | 'canceled';
@@ -660,9 +661,9 @@ export const Agendamento = (): JSX.Element => {
 
     // Filtrar apenas agendamentos ativos (não cancelados) e ordenar por data/hora (mais próximo primeiro)
     const activeReservations = reservations
-      .filter(res => res.status !== 'canceled' && res.status !== 'rejected') // Remove cancelados e rejeitados
+      .filter(res => res.status !== 'canceled' && res.status !== 'rejected') // Removes canceled and rejected
       .sort((a, b) => {
-        // Ordenar por data/hora - o mais próximo primeiro
+        // Sort by date/time - closest first
         const dateA = new Date(a.start_datetime);
         const dateB = new Date(b.start_datetime);
         // Invertendo a ordenação (B - A ao invés de A - B)
@@ -740,26 +741,13 @@ export const Agendamento = (): JSX.Element => {
   };
 
   // Atualizar a função handleDateSelect (ou criar se não existir)
-  const handleDateSelect = (date: Date) => {
-    // Verificar se a data está no passado
-    if (date < new Date()) {
-      return;
+  const handleDateSelect = (date: Date | null, event?: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) => {
+    if (date) {
+      setSelectedDate({
+        date,
+        isAvailable: true
+      });
     }
-
-    // Verificar se a data está marcada como ocupada
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const dayStatus = dayStatuses.find(d => d.date === dateStr);
-    
-    if (dayStatus?.status === 'ocupado') {
-      // Se estiver ocupada, não permite a seleção
-      return;
-    }
-
-    // Se estiver disponível, permite a seleção
-    setSelectedDate({
-      date,
-      isAvailable: true
-    });
   };
 
   // Adicione esta nova função para resetar os estados
@@ -1089,15 +1077,12 @@ export const Agendamento = (): JSX.Element => {
                     <div className="calendar-section">
                       <DatePicker
                         selected={selectedDate.date}
-                        onChange={(date: Date) => {
-                          const dateStr = format(date, 'yyyy-MM-dd');
-                          const status = dayStatuses.find(d => d.date === dateStr)?.status;
-                          
-                          setSelectedDate({ 
-                            date, 
-                            isAvailable: status === 'disponivel' 
-                          });
+                        onChange={(date: Date | null) => {
+                          if (date) {
+                            handleDateSelect(date);
+                          }
                         }}
+                        onSelect={handleDateSelect}
                         inline
                         locale={ptBR}
                         minDate={new Date()}
@@ -1105,7 +1090,6 @@ export const Agendamento = (): JSX.Element => {
                         monthsShown={1}
                         fixedHeight
                         openToDate={currentDate}
-                        onSelect={handleDateSelect}
                         filterDate={(date) => {
                           const dateStr = format(date, 'yyyy-MM-dd');
                           const dayStatus = dayStatuses.find(d => d.date === dateStr);

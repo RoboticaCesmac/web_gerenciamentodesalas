@@ -72,10 +72,13 @@ REST_FRAMEWORK = {
 # Configurações CORS para o frontend Vite
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "http://127.0.0.1:5173"
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "https://your-netlify-app.netlify.app"  # Adicione seu domínio do Netlify
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 
 # Configurações de autenticação
 AUTH_USER_MODEL = 'accounts.CustomUser'

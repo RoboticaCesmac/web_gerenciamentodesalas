@@ -229,3 +229,5 @@ ehthumbs.db
 *.sqlite3
 *.db
 *.mdb
+# Local Netlify folder
+.netlify

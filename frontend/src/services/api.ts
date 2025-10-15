@@ -71,29 +71,18 @@ export const createReservation = async (data: any) => {
 };
 
 export const getBuildings = async () => {
-  const response = await api.get('api/buildings/');
+  const response = await api.get('/api/buildings/');
   return response.data;
 };
 
 export const getFloorsByBuilding = async (buildingId: number) => {
-  const response = await api.get(`api/buildings/${buildingId}/floors/`);
+  const response = await api.get(`/api/buildings/${buildingId}/floors/`);
   return response.data;
 };
 
 export const getSpacesByFloor = async (floorId: number) => {
-  try {
-    const response = await api.get(`/api/floors/${floorId}/spaces/`);
-    // Transform the response to match what the component expects
-    const spaces = response.data.map((space: any) => ({
-      id: space.id,
-      name: space.name,
-      capacity: space.capacity
-    }));
-    return spaces;
-  } catch (error) {
-    console.error('Erro ao buscar espaços:', error);
-    return [];
-  }
+  const response = await api.get(`/api/floors/${floorId}/spaces/`);
+  return response.data;
 };
 
 export const updateReservation = async (id: number, data: any) => {

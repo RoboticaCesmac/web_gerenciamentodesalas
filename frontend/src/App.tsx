@@ -4,7 +4,7 @@ import { Login } from './pages/Login/Login';
 import { Agendamento } from './pages/Agendamento/Agendamento';
 import './pages/StyleGeral.css';
 
-const PrivateRoute = ({ children }: { children: JSX.Element }) => {
+const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('token');
   return token ? children : <Navigate to="/login" />;
 };
