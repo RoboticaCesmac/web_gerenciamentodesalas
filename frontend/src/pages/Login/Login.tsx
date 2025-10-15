@@ -8,7 +8,7 @@ import campus1 from "../../assets/Campus1.svg";
 import "./Login.css";
 import { login } from '../../services/api';
 
-export const Login = (): JSX.Element => {
+export const Login: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -28,14 +28,17 @@ export const Login = (): JSX.Element => {
     const fullEmail = `${username}@cesmac.edu.br`;
 
     try {
-      // Login and get user data
-      const data = await login({ email: fullEmail, password });
+      const result = await login({ email: fullEmail, password });
       
-      // Navigate to agendamento page
-      navigate('/agendamento');
+      if (result.ok) {
+        // Navegar para página de agendamento
+        navigate('/agendamento');
+      } else {
+        setError(result.error || "Usuário ou senha incorretos");
+      }
     } catch (error) {
       console.error('Erro no login:', error);
-      setError("Usuário ou senha incorretos");
+      setError("Erro ao fazer login. Tente novamente.");
     } finally {
       setLoading(false);
     }

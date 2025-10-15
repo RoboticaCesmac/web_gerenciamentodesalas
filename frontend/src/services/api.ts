@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-export const api = axios.create({
-  baseURL: 'http://localhost:8000',
-  headers: {
-    'Content-Type': 'application/json'
-  }
+const api = axios.create({
+  baseURL: import.meta.env.PROD 
+    ? 'https://sgs-cesmac.up.railway.app/api'
+    : 'http://localhost:8000/api',
+  withCredentials: true
 });
 
 // Interceptor para adicionar o token em todas as requisições
@@ -17,28 +17,39 @@ api.interceptors.request.use(config => {
 });
 
 export const login = async (credentials: { email: string; password: string }) => {
-  const response = await api.post('/api/auth/login/', credentials);
-  const { token } = response.data;
-  
-  // Save token
-  localStorage.setItem('token', token);
-  
-  // Save user data
-  if (response.data.user) {
-    localStorage.setItem('userProfile', JSON.stringify(response.data.user));
+  try {
+    const response = await api.post('/auth/login/', credentials);
+    
+    if (response.status === 200 && response.data.token) {
+      // Configurar o token
+      localStorage.setItem('token', response.data.token);
+      
+      // Configurar o token no axios
+      api.defaults.headers.common['Authorization'] = `Token ${response.data.token}`;
+      
+      // Salvar dados do usuário
+      if (response.data.user) {
+        localStorage.setItem('userProfile', JSON.stringify(response.data.user));
+      }
+      
+      return { ok: true, token: response.data.token };
+    }
+    
+    return { ok: false, error: 'Credenciais inválidas' };
+  } catch (error) {
+    console.error('Erro no login:', error);
+    return { ok: false, error: 'Erro ao fazer login' };
   }
-  
-  return response.data;
 };
 
 export const getUserProfile = async () => {
-  const response = await api.get('/api/auth/profile/');
+  const response = await api.get('/auth/profile/');
   return response.data;
 };
 
 export const getUserReservations = async () => {
   try {
-    const response = await api.get('api/reservations/');
+    const response = await api.get('reservations/');
     return response.data;
   } catch (error) {
     console.error('Erro ao buscar reservas:', error);
@@ -53,7 +64,7 @@ export const createReservation = async (data: any) => {
       throw new Error('Token não encontrado');
     }
 
-    const response = await api.post('/api/reservations/', data, {
+    const response = await api.post('/reservations/', data, {
       headers: {
         'Authorization': `Token ${token}`,
         'Content-Type': 'application/json'
@@ -71,22 +82,22 @@ export const createReservation = async (data: any) => {
 };
 
 export const getBuildings = async () => {
-  const response = await api.get('/api/buildings/');
+  const response = await api.get('/buildings/');
   return response.data;
 };
 
 export const getFloorsByBuilding = async (buildingId: number) => {
-  const response = await api.get(`/api/buildings/${buildingId}/floors/`);
+  const response = await api.get(`/buildings/${buildingId}/floors/`);
   return response.data;
 };
 
 export const getSpacesByFloor = async (floorId: number) => {
-  const response = await api.get(`/api/floors/${floorId}/spaces/`);
+  const response = await api.get(`/floors/${floorId}/spaces/`);
   return response.data;
 };
 
 export const updateReservation = async (id: number, data: any) => {
-  const response = await fetch(`api/reservations/${id}`, {
+  const response = await fetch(`reservations/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -103,7 +114,7 @@ export const updateReservation = async (id: number, data: any) => {
 
 export const cancelReservation = async (reservationId: number) => {
   try {
-    const response = await api.patch(`/api/reservations/${reservationId}/`, {
+    const response = await api.patch(`/reservations/${reservationId}/`, {
       status: 'canceled'
     });
     

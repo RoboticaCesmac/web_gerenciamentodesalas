@@ -22,7 +22,10 @@ import {
   getUserProfile, 
   getUserReservations, 
   createReservation,
-  cancelReservation  // Adicione esta importação
+  cancelReservation,
+  getBuildings,
+  getFloorsByBuilding,
+  getSpacesByFloor
 } from '../../services/api';
 import LogoutIcon from '../../assets/Sair.svg';
 
@@ -107,9 +110,12 @@ interface Floor {
 interface Space {
   id: number;
   name: string;
+  capacity: number;
+  building: number;
+  floor_name: string;
 }
 
-export const Agendamento = (): JSX.Element => {
+export const Agendamento: React.FC = () => {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [floors, setFloors] = useState<Floor[]>([]);
   const [spaces, setSpaces] = useState<Space[]>([]);
@@ -156,40 +162,33 @@ export const Agendamento = (): JSX.Element => {
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [reservationToCancel, setReservationToCancel] = useState<number | null>(null);
 
+  // Adicione o estado para selectedSpace
+  const [selectedSpace, setSelectedSpace] = useState<Space | null>(null);
+
   // Função para verificar disponibilidade de um dia específico
   const checkDayAvailability = async (date: Date) => {
-    if (!selectedValues.sala || !timeRange.start || !timeRange.end) return 'disponivel';
-    
-    const selectedSpace = spaces.find(space => space.name === selectedValues.sala);
-    if (!selectedSpace) return 'disponivel';
+    if (!selectedValues.sala || !timeRange.start || !timeRange.end) {
+      return 'disponivel';
+    }
+
+    const currentSpace = selectedSpace;
+    if (!currentSpace) {
+      console.error('Nenhum espaço selecionado');
+      return 'disponivel';
+    }
 
     try {
-      const startDateTime = new Date(date);
-      const [startHours, startMinutes] = timeRange.start.split(':').map(Number);
-      startDateTime.setHours(startHours, startMinutes, 0, 0);
-
-      const endDateTime = new Date(date);
-      const [endHours, endMinutes] = timeRange.end.split(':').map(Number);
-      endDateTime.setHours(endHours, endMinutes, 0, 0);
-
-      const response = await api.get(`/api/spaces/${selectedSpace.id}/availability/`, {
+      const availabilityResponse = await api.get(`/api/spaces/${currentSpace.id}/availability/`, {
         params: {
-          start_time: startDateTime.toISOString(),
-          end_time: endDateTime.toISOString()
+          start_time: format(date, "yyyy-MM-dd'T'" + timeRange.start + ':00'),
+          end_time: format(date, "yyyy-MM-dd'T'" + timeRange.end + ':00')
         }
       });
 
-      if (!response.data.is_available) {
-        const conflicts = response.data.conflicting_reservations || [];
-        // Se todas as reservas são do usuário atual, mostrar como disponível
-        const allMine = conflicts.every((conflict: any) => conflict.user === userProfile?.id);
-        return allMine ? 'disponivel' : 'ocupado';
-      }
-
-      return 'disponivel';
+      return availabilityResponse.data.is_available ? 'disponivel' : 'ocupado';
     } catch (error) {
       console.error('Erro ao verificar disponibilidade:', error);
-      return 'disponivel';
+      return 'ocupado';
     }
   };
 
@@ -337,6 +336,16 @@ export const Agendamento = (): JSX.Element => {
     fetchSpaces();
   }, [selectedValues.andar, floors]);
 
+  // Na função onde você seleciona o espaço
+  useEffect(() => {
+    const space = spaces.find(s => s.name === selectedValues.sala);
+    if (space) {
+      setSelectedSpace(space);
+    } else {
+      setSelectedSpace(null);
+    }
+  }, [selectedValues.sala, spaces]);
+
   const stepContentsDynamic = {
     campus: {
       title: 'Campus',
@@ -400,9 +409,14 @@ export const Agendamento = (): JSX.Element => {
   }, [selectedValues.sala, timeRange.start, timeRange.end]);
 
   const handleAddClick = () => {
-    setShowNovoAgendamento(true);
-    setAgendamentoStep('campus');
-    scrollToBottom();
+    if (showNovoAgendamento) {
+      // Se já estiver aberto, fecha
+      setShowNovoAgendamento(false);
+      setAgendamentoStep('campus'); // Reseta o estado do formulário
+    } else {
+      // Se estiver fechado, abre
+      setShowNovoAgendamento(true);
+    }
   };
 
   const handleEdit = async (reservation: Reservation) => {
@@ -470,99 +484,79 @@ export const Agendamento = (): JSX.Element => {
     }
   };
 
+  // Atualize a função handleNextStep
   const handleNextStep = async () => {
     if (agendamentoStep === 'andar' && !canProceedToNext()) {
+      setError('Preencha todos os campos');
+      return;
+    }
+    
+    if (agendamentoStep === 'andar') {
+      // Se estiver no passo 'andar' e todos os campos estiverem preenchidos
+      if (canProceedToNext() && selectedDate.date) {
+        // Atualizar os detalhes da reserva
+        setBookingDetails({
+          ...bookingDetails,
+          campus: selectedValues.campus,
+          andar: selectedValues.andar,
+          sala: selectedValues.sala,
+          data: selectedDate.date.toLocaleDateString(),
+          horario: {
+            inicio: timeRange.start,
+            fim: timeRange.end
+          }
+        });
+        // Avançar para o passo de confirmação
+        setAgendamentoStep('confirmacao');
+      }
+      return;
+    }
+
+    if (agendamentoStep === 'confirmacao') {
+      // Avançar para o resumo se os campos obrigatórios estiverem preenchidos
+      if (bookingDetails.curso && bookingDetails.telefone) {
+        setAgendamentoStep('resumo');
+      } else {
+        setError('Preencha todos os campos obrigatórios');
+      }
       return;
     }
     
     if (agendamentoStep === 'resumo') {
       try {
-        const [day, month, year] = bookingDetails.data.split('/');
-        const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-        
-        // Criar datas com timezone de Brasília
-        const offset = '-03:00';
-        const startDate = new Date(`${formattedDate}T${bookingDetails.horario.inicio}:00${offset}`);
-        const endDate = new Date(`${formattedDate}T${bookingDetails.horario.fim}:00${offset}`);
-
-        // Verificar disponibilidade
-        const availabilityResponse = await api.get(`/api/spaces/${selectedSpace.id}/availability/`, {
-          params: {
-            start_time: startDate.toISOString(),
-            end_time: endDate.toISOString()
-          }
-        });
-
-        console.log('Verificando disponibilidade:', {
-          start: startDate.toLocaleString(),
-          end: endDate.toLocaleString(),
-          response: availabilityResponse.data
-        });
-
-        if (!availabilityResponse.data.is_available) {
-          const conflicts = availabilityResponse.data.conflicting_reservations;
-          if (conflicts && conflicts.length > 0) {
-            const conflictMessages = conflicts.map((conflict: any) => {
-              const conflictStart = new Date(conflict.start_datetime);
-              const conflictEnd = new Date(conflict.end_datetime);
-              return `${conflictStart.toLocaleTimeString()} - ${conflictEnd.toLocaleTimeString()}`;
-            }).join('\n');
-            
-            setError(`Horário indisponível. Já existe(m) reserva(s) para:\n${conflictMessages}`);
-            return;
-          }
+        if (!selectedSpace) {
+          throw new Error('Nenhum espaço selecionado');
         }
 
-        // Se disponível, criar a reserva
+        const [day, month, year] = bookingDetails.data.split('/');
+        const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;        
+        
         const reservationData = {
+          title: bookingDetails.curso, // Adicione o título usando o curso
           space: selectedSpace.id,
-          start_datetime: startDate.toISOString(),
-          end_datetime: endDate.toISOString(),
-          title: bookingDetails.curso,
+          start_datetime: `${formattedDate}T${bookingDetails.horario.inicio}:00`,
+          end_datetime: `${formattedDate}T${bookingDetails.horario.fim}:00`,
           description: bookingDetails.observacao || '',
-          phone: bookingDetails.telefone
+          phone: bookingDetails.telefone || '',
+          status: 'pending'
         };
 
-        console.log('Criando reserva:', reservationData);
+        const result = await createReservation(reservationData);
 
-        const response = await createReservation(reservationData);
-        
-        if (response.ok) {
+        if (result.ok) {
           setAgendamentoStep('sucesso');
+          // Atualizar lista de reservas
           const updatedReservations = await getUserReservations();
           setReservations(updatedReservations);
-          // Após criar a reserva com sucesso, aguarde um pouco e resete
-          setTimeout(() => {
-            resetAgendamento();
-          }, 2000);
         } else {
-          setError(response.error || 'Erro ao criar reserva');
+          setError(result.error || 'Erro ao criar reserva');
         }
-      } catch (err) {
-        console.error('Erro:', err);
+      } catch (error) {
+        console.error('Erro:', error);
         setError('Erro ao criar agendamento. Tente novamente.');
       }
-    } else {
-      // Handle other steps as before
-      if (agendamentoStep === 'campus' && selectedValues.campus) {
-        setAgendamentoStep('andar');
-      } else if (agendamentoStep === 'andar' && isTimeAndLocationSelected()) {
-        setBookingDetails(prev => ({
-          ...prev,
-          campus: selectedValues.campus,
-          andar: selectedValues.andar,
-          sala: selectedValues.sala,
-          data: selectedDate.date ? selectedDate.date.toLocaleDateString() : '',
-          horario: {
-            inicio: timeRange.start,
-            fim: timeRange.end
-          }
-        }));
-        setAgendamentoStep('confirmacao');
-      } else if (agendamentoStep === 'confirmacao' && bookingDetails.curso && bookingDetails.telefone) {
-        setAgendamentoStep('resumo');
-      }
-      scrollToBottom();
+    } else if (agendamentoStep === 'campus') {
+      setAgendamentoStep('andar');
     }
   };
 
@@ -609,27 +603,39 @@ export const Agendamento = (): JSX.Element => {
     );
   };
 
+  // Substitua a chamada da API por estes dados
   useEffect(() => {
-    const fetchReservations = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const userProfileData = await getUserProfile();
-        const reservationsData = await getUserReservations();
-        
-        setUserProfile(userProfileData);
-        setReservations(reservationsData);
-        setHistorico(reservationsData);
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        setError('Erro ao carregar agendamentos');
-        setLoading(false);
-      }
-    };
+    // Comentar a chamada real da API
+    // const fetchReservations = async () => { ... };
+    // fetchReservations();
 
+    // Usar dados dummy
+    setReservations([]);
+    setHistorico([]);
+    setLoading(false);
+  }, []);
+
+  const fetchReservations = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const userProfileData = await getUserProfile();
+      const reservationsData = await getUserReservations();
+      
+      setUserProfile(userProfileData);
+      setReservations(reservationsData);
+      setHistorico(reservationsData);
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      setError('Erro ao carregar agendamentos');
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchReservations();
   }, []);
 
@@ -679,7 +685,7 @@ export const Agendamento = (): JSX.Element => {
     return (
       <>
         {reservationsToShow.map((reservation) => (
-          <div key={reservation.id} className="agendamento-card">
+          <div key={reservation.id} className={`agendamento-card ${!showNovoAgendamento ? 'full-width' : ''}`}>
             <div className="card-content">
               <div className="building-icon">
                 <img src={Campusico} alt="Campus" className="campus-icon" />
@@ -771,6 +777,7 @@ export const Agendamento = (): JSX.Element => {
     });
     setAgendamentoStep('campus');
     setShowNovoAgendamento(false);
+    setIsEditing(false);
   };
 
   // Adicione esta função helper
@@ -837,27 +844,29 @@ export const Agendamento = (): JSX.Element => {
     <div className="agendamento-container">
       <header className="header">
         <div className="blue-bar">
-          <div className="blue-bar-content">
-            <button className="logout-button" onClick={handleLogout}>
-              <img src={LogoutIcon} alt="Sair" />
-            </button>
-          </div>
+          <button className="logout-button" onClick={handleLogout}>
+            <img src={LogoutIcon} alt="Sair" />
+          </button>
         </div>
         <div className="white-bar">
-          <img src={logoImg} alt="CESMAC" className="logo" />
-        </div>
-        <div className="user-bar">
-          <img 
-            src={userProfile?.profile_photo || userImg} 
-            alt="Perfil" 
-            className="user-photo" 
-          />
-          <div className="user-info">
-            <span className="welcome">Bem-vindo!</span>
-            <span className="username">{userProfile ? formatUsername(userProfile.username) : 'Carregando...'}</span>
+          <img src={logoImg} alt="Logo" className="logo" />
+          <div className="user-bar">
+            <img 
+              src={userProfile?.profile_photo || userImg} 
+              alt="Perfil" 
+              className="user-photo" 
+            />
+            <div className="user-info">
+              <span className="welcome">Bem-vindo!</span>
+              <span className="username">{userProfile ? formatUsername(userProfile.username) : 'Carregando...'}</span>
+            </div>
+            <button className="add-button" onClick={handleAddClick}>
+              <img src={PlusIcon} alt="Adicionar" className="plus-icon" />
+              <span className="desktop-only">Agendar</span>
+            </button>
           </div>
-          <button className="add-button" onClick={handleAddClick}>
-            <img src={PlusIcon} alt="Adicionar" className="plus-icon" />
+          <button className="logout-button desktop-only" onClick={handleLogout}>
+            <img src={LogoutIcon} alt="Sair" />
           </button>
         </div>
       </header>
@@ -869,15 +878,14 @@ export const Agendamento = (): JSX.Element => {
             <p>Carregando...</p>
           ) : error ? (
             <div className="error-message">{error}</div>
-          ) : reservations.length === 0 ? (
-            <p>Nenhum agendamento encontrado.</p>
           ) : (
             <>
               <div className="agendamentos-list">
                 {reservations
+                  .filter(res => res.status !== 'canceled' && res.status !== 'completed')
                   .slice(0, mostrarTodosAgendamentos ? undefined : 2)
                   .map(reservation => (
-                    <div key={reservation.id} className="agendamento-card">
+                    <div key={reservation.id} className={`agendamento-card ${!showNovoAgendamento ? 'full-width' : ''}`}>
                       <div className="card-content">
                         <div className="card-left">
                           <div className="building-icon">
@@ -886,10 +894,6 @@ export const Agendamento = (): JSX.Element => {
                           </div>
                         </div>
                         <div className="card-right">
-                          <div className="header-buttons">
-                            <button className="edit-button" onClick={() => handleEdit(reservation)}>Editar</button>
-                            <button className="cancel-button-small" onClick={() => handleCancelClick(reservation.id)}>Cancelar</button>
-                          </div>
                           <div className="local-details">
                             <h3>{reservation.space_name}</h3>
                           </div>
@@ -897,9 +901,18 @@ export const Agendamento = (): JSX.Element => {
                             <p>{new Date(reservation.start_datetime).toLocaleDateString()}</p>
                             <p>{`${new Date(reservation.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
                                 ${new Date(reservation.end_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}</p>
-                            <p className={`status ${reservation.status}`}>
-                              {getStatusText(reservation.status)}
-                            </p>
+                            <p>{`${reservation.capacity} pessoas`}</p>
+                          </div>
+                          <div className="header-buttons">
+                            <button className="edit-button" onClick={() => handleEdit(reservation)}>
+                              Editar
+                            </button>
+                            <button 
+                              className="cancel-button-small" 
+                              onClick={() => handleCancelClick(reservation.id)}
+                            >
+                              Cancelar
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -925,7 +938,7 @@ export const Agendamento = (): JSX.Element => {
               .sort((a, b) => new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime())
               .slice(0, mostrarTodoHistorico ? undefined : 2)
               .map(reservation => (
-                <div key={reservation.id} className={`historico-card ${mapStatusToClassName(reservation.status)}`}>
+                <div key={reservation.id} className={`historico-card ${mapStatusToClassName(reservation.status)} ${!showNovoAgendamento ? 'full-width' : ''}`}>
                   <div className="historico-tags">
                     <span className={`tag tag-status ${mapStatusToClassName(reservation.status)}`}>
                       {getStatusText(reservation.status)}
@@ -1145,7 +1158,7 @@ export const Agendamento = (): JSX.Element => {
                   <button 
                     className="back-button" 
                     onClick={handleBackStep}
-                    disabled={agendamentoStep === 'campus'}
+                    disabled={agendamentoStep === 'campus' as AgendamentoStep}
                   >
                     <img src={RightArrowIcon} alt="Voltar" className="back-icon" />
                   </button>
