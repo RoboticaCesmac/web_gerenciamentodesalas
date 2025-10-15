@@ -17,7 +17,13 @@ import TelefoneIcon from '../../assets/telefone.svg';
 import MensagemIcon from '../../assets/Icones-Mensagem.svg';
 import CheckIcon from '../../assets/check.svg';
 import BigCheckIcon from '../../assets/Big-Check.svg';
-import { api, getUserProfile, getUserReservations, getBuildings, getFloorsByBuilding, getSpacesByFloor, createReservation } from '../../services/api';
+import { 
+  api, 
+  getUserProfile, 
+  getUserReservations, 
+  createReservation,
+  cancelReservation  // Adicione esta importação
+} from '../../services/api';
 
 interface StepContent {
   title: string;
@@ -136,12 +142,17 @@ export const Agendamento = (): JSX.Element => {
     telefone: '',
     observacao: ''
   });
+  const [isEditing, setIsEditing] = useState(false);
 
   // Novos estados para disponibilidade
   const [dayStatuses, setDayStatuses] = useState<DayStatus[]>([]);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
 
   const novoAgendamentoRef = useRef<HTMLDivElement>(null);
+
+  // Estados para confirmação de cancelamento
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
+  const [reservationToCancel, setReservationToCancel] = useState<number | null>(null);
 
   // Função para verificar disponibilidade de um dia específico
   const checkDayAvailability = async (date: Date) => {
@@ -151,7 +162,6 @@ export const Agendamento = (): JSX.Element => {
     if (!selectedSpace) return 'disponivel';
 
     try {
-      // Criar datas com o horário selecionado
       const startDateTime = new Date(date);
       const [startHours, startMinutes] = timeRange.start.split(':').map(Number);
       startDateTime.setHours(startHours, startMinutes, 0, 0);
@@ -160,35 +170,18 @@ export const Agendamento = (): JSX.Element => {
       const [endHours, endMinutes] = timeRange.end.split(':').map(Number);
       endDateTime.setHours(endHours, endMinutes, 0, 0);
 
-      // Ajustar para timezone de Brasília
-      const brazilTimeZone = '-03:00';
-      const startISOString = startDateTime.toISOString().replace('Z', brazilTimeZone);
-      const endISOString = endDateTime.toISOString().replace('Z', brazilTimeZone);
-
       const response = await api.get(`/api/spaces/${selectedSpace.id}/availability/`, {
         params: {
-          start_time: startISOString,
-          end_time: endISOString
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString()
         }
       });
 
-      console.log('Checking availability:', {
-        date: date.toLocaleDateString(),
-        time: `${timeRange.start}-${timeRange.end}`,
-        response: response.data
-      });
-
-      // Se houver conflitos, marcar como ocupado
       if (!response.data.is_available) {
         const conflicts = response.data.conflicting_reservations || [];
-        // Verificar se todas as reservas conflitantes são do usuário atual
-        const allMine = conflicts.every((conflict: any) => conflict.is_mine);
-        
-        // Se todas as reservas são minhas e sou admin/staff, mostrar como disponível
-        if (allMine && userProfile?.is_staff) {
-          return 'disponivel';
-        }
-        return 'ocupado';
+        // Se todas as reservas são do usuário atual, mostrar como disponível
+        const allMine = conflicts.every((conflict: any) => conflict.user === userProfile?.id);
+        return allMine ? 'disponivel' : 'ocupado';
       }
 
       return 'disponivel';
@@ -207,17 +200,32 @@ export const Agendamento = (): JSX.Element => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const newDayStatuses: DayStatus[] = [];
     
-    // Verificar todos os dias do mês
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
-      if (date < new Date()) continue;
+      date.setHours(0, 0, 0, 0);
+      
+      // Pular dias passados
+      if (date < today) {
+        newDayStatuses.push({
+          date: format(date, 'yyyy-MM-dd'),
+          status: 'ocupado'
+        });
+        continue;
+      }
 
       try {
         const status = await checkDayAvailability(date);
-        console.log(`Checking day ${date.toLocaleDateString()} at ${timeRange.start}-${timeRange.end}:`, status);
+        
+        // Log para debug
+        console.log(`Checking availability for ${format(date, 'yyyy-MM-dd')}:`, {
+          timeRange,
+          status
+        });
         
         newDayStatuses.push({
           date: format(date, 'yyyy-MM-dd'),
@@ -251,10 +259,10 @@ export const Agendamento = (): JSX.Element => {
 
   // Carregar disponibilidade quando a sala ou mês mudar
   useEffect(() => {
-    if (selectedValues.sala && timeRange.start && timeRange.end && agendamentoStep === 'andar') {
+    if (selectedValues.sala && timeRange.start && timeRange.end) {
       loadMonthAvailability();
     }
-  }, [selectedValues.sala, timeRange.start, timeRange.end, agendamentoStep, currentDate]);
+  }, [selectedValues.sala, timeRange.start, timeRange.end, currentDate]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -399,6 +407,7 @@ export const Agendamento = (): JSX.Element => {
     try {
       setShowNovoAgendamento(true);
       setAgendamentoStep('andar');
+      setIsEditing(true); // Adicione este estado
 
       setSelectedValues({
         campus: reservation.building_name,
@@ -469,15 +478,10 @@ export const Agendamento = (): JSX.Element => {
         const [day, month, year] = bookingDetails.data.split('/');
         const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
         
-        const selectedSpace = spaces.find(space => space.name === bookingDetails.sala);
-        if (!selectedSpace) {
-          setError('Sala não encontrada');
-          return;
-        }
-
         // Criar datas com timezone de Brasília
-        const startDate = new Date(`${formattedDate}T${bookingDetails.horario.inicio}:00-03:00`);
-        const endDate = new Date(`${formattedDate}T${bookingDetails.horario.fim}:00-03:00`);
+        const offset = '-03:00';
+        const startDate = new Date(`${formattedDate}T${bookingDetails.horario.inicio}:00${offset}`);
+        const endDate = new Date(`${formattedDate}T${bookingDetails.horario.fim}:00${offset}`);
 
         // Verificar disponibilidade
         const availabilityResponse = await api.get(`/api/spaces/${selectedSpace.id}/availability/`, {
@@ -525,6 +529,10 @@ export const Agendamento = (): JSX.Element => {
           setAgendamentoStep('sucesso');
           const updatedReservations = await getUserReservations();
           setReservations(updatedReservations);
+          // Após criar a reserva com sucesso, aguarde um pouco e resete
+          setTimeout(() => {
+            resetAgendamento();
+          }, 2000);
         } else {
           setError(response.error || 'Erro ao criar reserva');
         }
@@ -648,50 +656,62 @@ export const Agendamento = (): JSX.Element => {
   const renderAgendamentos = () => {
     if (loading) return <p>Carregando...</p>;
     if (error) return <p>{error}</p>;
-    if (reservations.length === 0) return <p>Nenhum agendamento encontrado.</p>;
+
+    // Filtrar apenas agendamentos ativos (não cancelados) e ordenar por data/hora (mais próximo primeiro)
+    const activeReservations = reservations
+      .filter(res => res.status !== 'canceled' && res.status !== 'rejected') // Remove cancelados e rejeitados
+      .sort((a, b) => {
+        // Ordenar por data/hora - o mais próximo primeiro
+        const dateA = new Date(a.start_datetime);
+        const dateB = new Date(b.start_datetime);
+        // Invertendo a ordenação (B - A ao invés de A - B)
+        return dateA.getTime() - dateB.getTime();
+      });
+
+    if (activeReservations.length === 0) return <p>Nenhum agendamento ativo.</p>;
 
     const reservationsToShow = mostrarTodosAgendamentos 
-      ? reservations 
-      : reservations.slice(0, 3);
+      ? activeReservations 
+      : activeReservations.slice(0, 3);
 
     return (
       <>
         {reservationsToShow.map((reservation) => (
           <div key={reservation.id} className="agendamento-card">
             <div className="card-content">
-              <div className="card-left">
-                <div className="building-icon">
-                  <img src={Campusico} alt="Campus" className="campus-icon" />
-                  <span className="campus-name">{reservation.building_name}</span>
-                </div>
+              <div className="building-icon">
+                <img src={Campusico} alt="Campus" className="campus-icon" />
+                <span className="campus-name">{reservation.building_name}</span>
               </div>
               <div className="card-right">
-                <div className="header-buttons">
-                  <button 
-                    className="edit-button" 
-                    onClick={() => handleEdit(reservation)}
-                  >
-                    Editar
-                  </button>
-                  <button className="cancel-button-small">Cancelar</button>
-                </div>
                 <div className="local-details">
                   <h3>{reservation.space_name}</h3>
                 </div>
                 <div className="agendamento-info">
                   <p>{new Date(reservation.start_datetime).toLocaleDateString()}</p>
-                  <p>{`${new Date(reservation.start_datetime).toLocaleTimeString()} - 
-                      ${new Date(reservation.end_datetime).toLocaleTimeString()}`}</p>
-                  <p className={`status ${mapStatusToClassName(reservation.status)}`}>
-                    {getStatusText(reservation.status)}
-                  </p>
-                  <p className="capacity">Pessoas: {reservation.capacity}</p>
+                  <p>{`${new Date(reservation.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
+                      ${new Date(reservation.end_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}</p>
+                  <p>{`${reservation.capacity} pessoas`}</p>
+                </div>
+                <div className="header-buttons">
+                  <button className="edit-button" onClick={() => handleEdit(reservation)}>
+                    Editar
+                  </button>
+                  <button 
+                    className="cancel-button-small" 
+                    onClick={() => {
+                      setReservationToCancel(reservation.id);
+                      setShowCancelConfirmation(true);
+                    }}
+                  >
+                    Cancelar
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         ))}
-        {reservations.length > 3 && (
+        {activeReservations.length > 3 && (
           <button
             className="ver-mais"
             onClick={() => setMostrarTodosAgendamentos(!mostrarTodosAgendamentos)}
@@ -742,40 +762,74 @@ export const Agendamento = (): JSX.Element => {
   };
 
   // Adicione esta nova função para resetar os estados
-  const resetAgendamentoStates = () => {
+  const resetAgendamento = () => {
     setSelectedValues({
       campus: '',
       andar: '',
       sala: ''
     });
-    
-    setTimeRange({
-      start: '',
-      end: ''
-    });
-    
-    setSelectedDate({
-      date: null,
-      isAvailable: true
-    });
-    
+    setTimeRange({ start: '', end: '' });
+    setSelectedDate({ date: null, isAvailable: true });
     setBookingDetails({
       campus: '',
       andar: '',
       sala: '',
       data: '',
-      horario: {
-        inicio: '',
-        fim: ''
-      },
+      horario: { inicio: '', fim: '' },
       curso: '',
       telefone: '',
       observacao: ''
     });
-    
-    setDayStatuses([]);
-    setError(null);
     setAgendamentoStep('campus');
+    setShowNovoAgendamento(false);
+  };
+
+  // Adicione esta função helper
+  const capitalizeWords = (str: string) => {
+    return str.split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
+  const formatUsername = (username: string) => {
+    return username
+      .split(/[.,@]/)
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Funções para cancelamento
+  const handleCancelClick = (reservationId: number) => {
+    setReservationToCancel(reservationId);
+    setShowCancelConfirmation(true);
+  };
+
+  const handleCancelConfirm = async () => {
+    if (reservationToCancel) {
+      try {
+        const result = await cancelReservation(reservationToCancel);
+        
+        if (result.ok) {
+          // Atualizar lista de reservas excluindo a cancelada
+          const updatedReservations = await getUserReservations();
+          setReservations(updatedReservations);
+          
+          // Fechar o popup
+          setShowCancelConfirmation(false);
+          setReservationToCancel(null);
+        } else {
+          setError('Não foi possível cancelar a reserva');
+        }
+      } catch (error) {
+        console.error('Erro ao cancelar reserva:', error);
+        setError('Erro ao cancelar reserva');
+      }
+    }
+  };
+
+  const handleCancelClose = () => {
+    setShowCancelConfirmation(false);
+    setReservationToCancel(null);
   };
 
   return (
@@ -794,16 +848,7 @@ export const Agendamento = (): JSX.Element => {
           />
           <div className="user-info">
             <span className="welcome">Bem-vindo!</span>
-            <span className="username">
-              {loading 
-                ? 'Carregando...'
-                : userProfile
-                  ? userProfile.first_name 
-                    ? `${userProfile.first_name.replace('.', ' ')} ${userProfile.last_name?.replace('.', ' ') || ''}`
-                    : userProfile.username.replace('.', ' ')
-                  : 'Usuário'
-              }
-            </span>
+            <span className="username">{userProfile ? formatUsername(userProfile.username) : 'Carregando...'}</span>
           </div>
           <button className="add-button" onClick={handleAddClick}>
             <img src={PlusIcon} alt="Adicionar" className="plus-icon" />
@@ -837,15 +882,15 @@ export const Agendamento = (): JSX.Element => {
                         <div className="card-right">
                           <div className="header-buttons">
                             <button className="edit-button" onClick={() => handleEdit(reservation)}>Editar</button>
-                            <button className="cancel-button-small">Cancelar</button>
+                            <button className="cancel-button-small" onClick={() => handleCancelClick(reservation.id)}>Cancelar</button>
                           </div>
                           <div className="local-details">
                             <h3>{reservation.space_name}</h3>
                           </div>
                           <div className="agendamento-info">
                             <p>{new Date(reservation.start_datetime).toLocaleDateString()}</p>
-                            <p>{`${new Date(reservation.start_datetime).toLocaleTimeString()} - 
-                                ${new Date(reservation.end_datetime).toLocaleTimeString()}`}</p>
+                            <p>{`${new Date(reservation.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
+                                ${new Date(reservation.end_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}</p>
                             <p className={`status ${reservation.status}`}>
                               {getStatusText(reservation.status)}
                             </p>
@@ -871,6 +916,7 @@ export const Agendamento = (): JSX.Element => {
           <h2>Histórico de agendamento</h2>
           <div className="historico-list">
             {historico
+              .sort((a, b) => new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime())
               .slice(0, mostrarTodoHistorico ? undefined : 2)
               .map(reservation => (
                 <div key={reservation.id} className={`historico-card ${mapStatusToClassName(reservation.status)}`}>
@@ -879,10 +925,14 @@ export const Agendamento = (): JSX.Element => {
                       {getStatusText(reservation.status)}
                     </span>
                     <span className="tag tag-time">
-                      {new Date(reservation.start_datetime).toLocaleTimeString()}
+                      {`${new Date(reservation.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
+                       ${new Date(reservation.end_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}
                     </span>
                     <span className="tag tag-date">
                       {new Date(reservation.start_datetime).toLocaleDateString()}
+                    </span>
+                    <span className="tag tag-people">
+                      {`${reservation.capacity} pessoas`}
                     </span>
                   </div>
                   <div className="historico-location">
@@ -910,12 +960,7 @@ export const Agendamento = (): JSX.Element => {
 
         {showNovoAgendamento && (
           <section className="novo-agendamento" ref={novoAgendamentoRef}>
-            <h2>Novo Agendamento</h2>
-            {error && (
-              <div className="error-message">
-                <p>{error}</p>
-              </div>
-            )}
+            <h2>{isEditing ? 'Editar Agendamento' : 'Novo Agendamento'}</h2>
             {agendamentoStep === 'campus' ? (
               <>
                 <div className="filtro">
@@ -928,7 +973,7 @@ export const Agendamento = (): JSX.Element => {
                       andar: '',
                       sala: ''
                     })}
-                  >
+                    >
                     <option value="">{stepContentsDynamic.campus.placeholder}</option>
                     {buildings.map((building) => (
                       <option key={building.id} value={building.name}>
@@ -938,6 +983,11 @@ export const Agendamento = (): JSX.Element => {
                   </select>
                 </div>
 
+                  {error && (
+                    <div className="error-message">
+                      <p>{error}</p>
+                    </div>
+                  )}
                 <div className="action-buttons">
                   <button 
                     className="search-button" 
@@ -1256,27 +1306,10 @@ export const Agendamento = (): JSX.Element => {
                 </div>
 
                 <button 
-                  className="conclude-button" 
-                  onClick={async () => {
-                    try {
-                      // Atualizar as listas de reservas
-                      const updatedReservations = await getUserReservations();
-                      setReservations(updatedReservations);
-                      setHistorico(updatedReservations);
-                      
-                      // Resetar estados
-                      resetAgendamentoStates();
-                      
-                      // Fechar o painel de novo agendamento
-                      setShowNovoAgendamento(false);
-                    } catch (error) {
-                      console.error('Erro ao atualizar agendamentos:', error);
-                      setError('Erro ao atualizar lista de agendamentos');
-                    }
-                  }}
+                  className="conclude-button"
+                  onClick={resetAgendamento}
                 >
-                  <img src={CheckIcon} alt="Confirmar" />
-                  <span>Concluir</span>
+                  Concluir
                 </button>
               </div>
             ) : null}
@@ -1284,6 +1317,23 @@ export const Agendamento = (): JSX.Element => {
         )}
         
       </main>
+
+      {/* Componente de confirmação de cancelamento */}
+      {showCancelConfirmation && (
+        <div className="popup-overlay">
+          <div className="popup-content">
+            <p>Isso irá apagar o Agendamento, tem certeza?</p>
+            <div className="popup-buttons">
+              <button className="popup-button cancel" onClick={handleCancelConfirm}>
+                Sim, Cancelar
+              </button>
+              <button className="popup-button no" onClick={handleCancelClose}>
+                Não
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

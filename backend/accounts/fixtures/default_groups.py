@@ -22,6 +22,7 @@ def create_default_groups():
     usuario_permissions.extend([
         Permission.objects.get(codename='add_reservation', content_type=reservation_ct),
         Permission.objects.get(codename='view_reservation', content_type=reservation_ct),
+        Permission.objects.get(codename='change_reservation', content_type=reservation_ct),  # Adicionada permissão
     ])
     
     usuario_group.permissions.set(usuario_permissions)

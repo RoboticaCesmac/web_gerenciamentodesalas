@@ -98,9 +98,17 @@ class SpaceViewSet(viewsets.ReadOnlyModelViewSet):
                 'error': f'Erro ao verificar disponibilidade: {str(e)}'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+class IsOwnerOrAdmin(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        # Admins podem fazer qualquer coisa
+        if request.user.groups.filter(name='Admin').exists():
+            return True
+        # Usuários só podem modificar suas próprias reservas
+        return obj.user == request.user
+
 class ReservationViewSet(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdmin]
 
     def get_queryset(self):
         user = self.request.user
@@ -164,6 +172,17 @@ class ReservationViewSet(viewsets.ModelViewSet):
         reservations = self.get_queryset().filter(user=request.user)
         serializer = self.get_serializer(reservations, many=True)
         return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        if 'status' in self.request.data and self.request.data['status'] == 'canceled':
+            # Permitir que usuários cancelem suas próprias reservas
+            reservation = self.get_object()
+            if reservation.user == self.request.user or self.request.user.groups.filter(name='Admin').exists():
+                serializer.save(status='canceled')
+            else:
+                raise PermissionDenied("Você não tem permissão para cancelar esta reserva")
+        else:
+            serializer.save()
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

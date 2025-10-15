@@ -77,12 +77,20 @@ class ReservationSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'building', 'status']
 
     def validate(self, data):
+        # Se estiver apenas atualizando o status, pule as validações de data
+        if len(data) == 1 and 'status' in data:
+            return data
+
+        # Resto das validações para criação/atualização completa
+        start = data.get('start_datetime')
+        end = data.get('end_datetime')
+        
+        if not start or not end:
+            return data  # Skip validation if dates aren't being updated
+
         # Converter horários para o timezone de Brasília
         brazil_tz = pytz.timezone('America/Sao_Paulo')
         
-        start = data['start_datetime']
-        end = data['end_datetime']
-
         # Garantir que as datas têm timezone
         if timezone.is_naive(start):
             start = timezone.make_aware(start, brazil_tz)

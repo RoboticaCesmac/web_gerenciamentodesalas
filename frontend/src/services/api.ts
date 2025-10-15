@@ -111,3 +111,21 @@ export const updateReservation = async (id: number, data: any) => {
   
   return response.json();
 };
+
+export const cancelReservation = async (reservationId: number) => {
+  try {
+    const response = await api.patch(`/api/reservations/${reservationId}/`, {
+      status: 'canceled'
+    });
+    
+    if (response.status === 200) {
+      return { ok: true, data: response.data };
+    } else {
+      console.error('Erro na resposta:', response);
+      return { ok: false, error: 'Erro ao cancelar reserva' };
+    }
+  } catch (error) {
+    console.error('Erro ao cancelar reserva:', error);
+    return { ok: false, error: 'Erro ao cancelar reserva' };
+  }
+};
