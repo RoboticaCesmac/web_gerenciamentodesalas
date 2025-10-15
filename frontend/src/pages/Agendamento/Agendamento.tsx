@@ -24,6 +24,7 @@ import {
   createReservation,
   cancelReservation  // Adicione esta importação
 } from '../../services/api';
+import LogoutIcon from '../../assets/Sair.svg';
 
 interface StepContent {
   title: string;
@@ -832,10 +833,27 @@ export const Agendamento = (): JSX.Element => {
     setReservationToCancel(null);
   };
 
+  // Adicione a função de logout
+  const handleLogout = async () => {
+    try {
+      await api.post('/api/auth/logout/');
+      localStorage.removeItem('token');
+      localStorage.removeItem('userProfile');
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
+
   return (
     <div className="agendamento-container">
       <header className="header">
         <div className="blue-bar">
+          <div className="blue-bar-content">
+            <button className="logout-button" onClick={handleLogout}>
+              <img src={LogoutIcon} alt="Sair" />
+            </button>
+          </div>
         </div>
         <div className="white-bar">
           <img src={logoImg} alt="CESMAC" className="logo" />
@@ -1165,7 +1183,7 @@ export const Agendamento = (): JSX.Element => {
                   </div>
                   <div className="detail-chip-location">
                     <img src={PingIcon} alt="Location" />
-                    <span>{extractRoomName(bookingDetails.sala)}</span>
+                    <span>{bookingDetails.sala}</span>
                   </div>
                   <div className="detail-chip-time">
                     <img src={Calendario} alt="Data" />

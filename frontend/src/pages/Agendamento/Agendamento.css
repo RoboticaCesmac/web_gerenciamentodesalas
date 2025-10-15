@@ -18,6 +18,7 @@
   background-color: #0069AD;
   height: 62px;
   width: 100%;
+  position: relative;
 }
 
 .white-bar {
@@ -1700,4 +1701,31 @@ p {
   background-color: white;
   color: #333;
   border: 1px solid #ccc;
+}
+
+.blue-bar {
+  /* ...existing styles... */
+  position: relative;
+}
+
+.logout-button {
+  filter: saturate(100%) invert(100%) sepia(100%) saturate(100%) brightness(110%) contrast(100%);
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 8px;
+  transition: opacity 0.2s;
+}
+
+.logout-button:hover {
+  opacity: 0.8;
+}
+
+.logout-button img {
+  width: 24px;
+  height: 24px;
 }

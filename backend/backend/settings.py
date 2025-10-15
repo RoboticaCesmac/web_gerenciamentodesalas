@@ -173,3 +173,12 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Add logging configuration
+
+# Configurações de autenticação
+LOGOUT_URL = '/logout/'
+LOGOUT_REDIRECT_URL = '/admin/login/'
+LOGIN_REDIRECT_URL = '/admin/'
+LOGIN_URL = '/admin/login/'
+
+# Permitir logout via GET para o AdminLTE
+ADMIN_ALLOW_LOGOUT_VIA_GET = True
