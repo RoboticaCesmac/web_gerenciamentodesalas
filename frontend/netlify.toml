@@ -9,8 +9,3 @@
 
 [build.environment]
   VITE_API_URL = "https://sgs-cesmac.netlify.app"
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
