@@ -1,20 +1,17 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login/Login';
 import { Agendamento } from './pages/Agendamento/Agendamento';
 import './pages/StyleGeral.css';
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const navigate = useNavigate();
-  const token = localStorage.getItem('token');
+  const isAuthenticated = localStorage.getItem('token') !== null;
   
-  useEffect(() => {
-    if (!token) {
-      navigate('/login');
-    }
-  }, [token, navigate]);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
-  return token ? <>{children}</> : null;
+  return <>{children}</>;
 };
 
 function App() {
@@ -30,7 +27,7 @@ function App() {
             </PrivateRoute>
           } 
         />
-        <Route path="/" element={<Navigate to="/agendamento" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

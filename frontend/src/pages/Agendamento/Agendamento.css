@@ -388,7 +388,7 @@
 .historico-card.concluido .tag-time,
 .historico-card.concluido .tag-date {
   background: rgba(52, 199, 89, 0.3);
-  color: #34C759;
+  color: #207D38;  /* Changed from #34C759 to #207D38 */
 }
 
 .cancel-button {
@@ -562,15 +562,15 @@ p {
 .tag {
   padding: 4px 12px;
   border-radius: 100px;
-  font-size: 10px;
-  font-weight: 400;
+  font-size: 12px; /* Increased from 10px */
+  font-weight: 600; /* Increased from 400 */
   white-space: nowrap;
 }
 
 /* Status tags - Main colors */
 .tag-status {
-  font-weight: 400;
-  font-size: 10px;
+  font-weight: 600; /* Increased from 400 */
+  font-size: 12px; /* Increased from 10px */
 }
 
 .tag-status.concluido {
@@ -598,7 +598,7 @@ p {
 .historico-card.concluido .tag-date,
 .historico-card.concluido .tag-people {
   background-color: rgba(52, 199, 89, 0.3);
-  color: #34C759;
+  color: #207D38;  /* Changed from #34C759 to #207D38 */
 }
 
 .historico-card.cancelado .tag-time,
@@ -1865,7 +1865,7 @@ p {
   /* Quando Novo Agendamento está visível */
   .main-content:has(.novo-agendamento) .agendamento-card,
   .main-content:has(.novo-agendamento) .historico-card {
-    width: 80.375%; /* 684px / 1152px */
+    width: 100%;
   }
 
   /* Quando Novo Agendamento NÃO está visível */

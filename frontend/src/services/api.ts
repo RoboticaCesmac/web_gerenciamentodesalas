@@ -2,8 +2,8 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.PROD 
-    ? 'https://sgs-cesmac.up.railway.app/api'
-    : 'http://localhost:8000/api',
+    ? 'https://sgs-cesmac.netlify.app/api'
+    : 'http://localhost:5173/api',
   withCredentials: true
 });
 
@@ -129,3 +129,6 @@ export const cancelReservation = async (reservationId: number) => {
     return { ok: false, error: 'Erro ao cancelar reserva' };
   }
 };
+
+// Export the api instance
+export { api };

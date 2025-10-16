@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Agendamento.css';
 import logoImg from '../../assets/logo-CESMAC-redux.svg';
 import Campusico from '../../assets/Campus-ico.svg';
@@ -10,6 +11,7 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { ptBR } from 'date-fns/locale';
 import { format } from 'date-fns';
+import LogoutIcon from '../../assets/Sair.svg';
 import Relogio from '../../assets/Relogio.svg';
 import Calendario from '../../assets/Calendario.svg';
 import ChapeuIcon from '../../assets/chapeu.svg';
@@ -18,23 +20,26 @@ import MensagemIcon from '../../assets/Icones-Mensagem.svg';
 import CheckIcon from '../../assets/check.svg';
 import BigCheckIcon from '../../assets/Big-Check.svg';
 import { 
-  api, 
-  getUserProfile, 
-  getUserReservations, 
+  api,
+  getUserProfile,
+  getUserReservations,
   createReservation,
-  cancelReservation,
-  getBuildings,
-  getFloorsByBuilding,
-  getSpacesByFloor
+  cancelReservation 
 } from '../../services/api';
-import LogoutIcon from '../../assets/Sair.svg';
-
-interface StepContent {
-  title: string;
-  label: string;
-  placeholder: string;
-  options: string[];
-}
+import type { 
+  Space, 
+  Reservation, 
+  StepContent, 
+  Building,
+  Floor 
+} from '../../types';
+import { 
+  dummyBuildings, 
+  dummyFloors, 
+  dummyRooms, 
+  dummyReservations,
+  stepContentsDynamic 
+} from '../../services/dummyData';
 
 interface TimeRange {
   start: string;
@@ -81,53 +86,19 @@ interface UserProfile {
   profile_photo?: string;
 }
 
-interface Reservation {
-  id: number;
-  title: string;
-  description: string;
-  space: number;
-  space_name: string; // Changed from number to string
-  building: number;
-  building_name: string;
-  floor_name: string; // Added this field
-  start_datetime: string;
-  end_datetime: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'canceled';
-  user_email: string;
-  capacity: number;
-}
-
-interface Building {
-  id: number;
-  name: string;
-}
-
-interface Floor {
-  id: number;
-  name: string;  // Isso vai receber o floor_name do backend
-}
-
-interface Space {
-  id: number;
-  name: string;
-  capacity: number;
-  building: number;
-  floor_name: string;
-}
-
 export const Agendamento: React.FC = () => {
+  const navigate = useNavigate();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [floors, setFloors] = useState<Floor[]>([]);
   const [spaces, setSpaces] = useState<Space[]>([]);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [userReservations, setUserReservations] = useState<Reservation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [historico, setHistorico] = useState<Reservation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showNovoAgendamento, setShowNovoAgendamento] = useState(false);
   const [mostrarTodosAgendamentos, setMostrarTodosAgendamentos] = useState(false);
   const [mostrarTodoHistorico, setMostrarTodoHistorico] = useState(false);
-  const [showNovoAgendamento, setShowNovoAgendamento] = useState(false);
   const [agendamentoStep, setAgendamentoStep] = useState<AgendamentoStep>('campus');
   const [selectedValues, setSelectedValues] = useState({
     campus: '',
@@ -265,127 +236,27 @@ export const Agendamento: React.FC = () => {
     }
   }, [selectedValues.sala, timeRange.start, timeRange.end, currentDate]);
 
+  // Replace API calls with dummy data
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const profile = await getUserProfile();
-        console.log('Profile data:', profile);
-        setUserProfile(profile);
-      } catch (err) {
-        console.error('Error loading profile:', err);
-        setError('Erro ao carregar dados do usuário');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    const fetchBuildings = async () => {
-      try {
-        const data = await getBuildings();
-        console.log('Buildings received:', data);
-        setBuildings(data);
-      } catch (err) {
-        console.error('Erro ao carregar prédios:', err);
-      }
-    };
-
-    fetchBuildings();
-  }, []);
-
-  useEffect(() => {
-    const fetchFloors = async () => {
-      if (selectedValues.campus) {
-        const building = buildings.find(b => b.name === selectedValues.campus);
-        console.log('Selected building:', building);
-        if (building?.id) {
-          try {
-            const data = await getFloorsByBuilding(building.id);
-            console.log('Floors received:', data);
-            setFloors(data);
-          } catch (err) {
-            console.error('Erro ao carregar andares:', err);
-          }
-        }
-      }
-    };
-    fetchFloors();
-  }, [selectedValues.campus, buildings]);
-
-  useEffect(() => {
-    const fetchSpaces = async () => {
-      if (selectedValues.andar) {
-        const floor = floors.find(f => f.name === selectedValues.andar);
-        console.log('Selected floor:', floor);
-        if (floor?.id) {
-          try {
-            const data = await getSpacesByFloor(floor.id);
-            console.log('Spaces received:', data);
-            setSpaces(data);
-          } catch (err) {
-            console.error('Erro ao carregar salas:', err);
-            setError('Erro ao carregar salas disponíveis');
-          }
-        }
-      }
-    };
-    fetchSpaces();
-  }, [selectedValues.andar, floors]);
-
-  // Na função onde você seleciona o espaço
-  useEffect(() => {
-    const space = spaces.find(s => s.name === selectedValues.sala);
-    if (space) {
-      setSelectedSpace(space);
-    } else {
-      setSelectedSpace(null);
+    const storedProfile = localStorage.getItem('userProfile');
+    if (!storedProfile) {
+      navigate('/login');
+      return;
     }
-  }, [selectedValues.sala, spaces]);
 
-  const stepContentsDynamic = {
-    campus: {
-      title: 'Campus',
-      label: 'Campus',
-      placeholder: 'Escolher Campus',
-      options: buildings.map(building => ({
-        value: building.name,
-        label: building.name
-      }))
-    },
-    details: {
-      title: 'Novo Agendamento',
-      sections: [
-        {
-          label: 'Andar',
-          placeholder: 'Escolher Andar',
-          options: floors.map(floor => ({
-            value: floor.name,
-            label: floor.name
-          }))
-        },
-        {
-          label: 'Sala',
-          placeholder: 'Escolher Sala',
-          options: spaces.map(space => ({
-            value: space.name,
-            label: space.name
-          }))
-        },
-        {
-          label: 'Horário',
-          type: 'time-range'
-        },
-        {
-          label: 'Data',
-          type: 'calendar'
-        }
-      ]
-    }
-  };
+    // Carrega todos os dados dummy de uma vez
+    setUserProfile(JSON.parse(storedProfile));
+    setBuildings(dummyBuildings);
+    
+    // Filtra as reservas para mostrar apenas as não canceladas/completadas em "Meus Agendamentos"
+    const activeReservations = dummyReservations.filter(
+      res => res.status !== 'canceled' && res.status !== 'completed'
+    );
+    
+    setReservations(activeReservations);
+    setHistorico(dummyReservations); // Histórico mostra todas as reservas
+    setLoading(false);
+  }, [navigate]);
 
   // Atualizar a função scrollToBottom
   const scrollToBottom = () => {
@@ -603,166 +474,53 @@ export const Agendamento: React.FC = () => {
     );
   };
 
-  // Substitua a chamada da API por estes dados
-  useEffect(() => {
-    // Comentar a chamada real da API
-    // const fetchReservations = async () => { ... };
-    // fetchReservations();
-
-    // Usar dados dummy
-    setReservations([]);
-    setHistorico([]);
-    setLoading(false);
-  }, []);
-
-  const fetchReservations = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const userProfileData = await getUserProfile();
-      const reservationsData = await getUserReservations();
-      
-      setUserProfile(userProfileData);
-      setReservations(reservationsData);
-      setHistorico(reservationsData);
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-      setError('Erro ao carregar agendamentos');
-      setLoading(false);
-    }
+  // Funções auxiliares
+  const formatUsername = (username: string) => {
+    return username.split('.').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
   };
-
-  useEffect(() => {
-    fetchReservations();
-  }, []);
 
   const mapStatusToClassName = (status: string) => {
     const statusMap: Record<string, string> = {
-      'approved': 'confirmado',
+      'confirmado': 'confirmado', // Alterado de 'approved'
       'pending': 'pendente',
-      'rejected': 'cancelado',
-      'completed': 'concluido',
-      'canceled': 'cancelado'
+      'canceled': 'cancelado',
+      'completed': 'Concluído'
     };
     return statusMap[status] || status;
   };
 
   const getStatusText = (status: string) => {
-    const statusTextMap: Record<string, string> = {
-      'approved': 'Confirmado',
+    const statusMap: Record<string, string> = {
+      'confirmado': 'Confirmado', // Alterado de 'Aprovado'
       'pending': 'Pendente',
-      'rejected': 'Cancelado',
-      'completed': 'Concluído',
-      'canceled': 'Cancelado'
+      'canceled': 'Cancelado',
+      'completed': 'Concluído'
     };
-    return statusTextMap[status] || status;
+    return statusMap[status] || status;
   };
 
-  const renderAgendamentos = () => {
-    if (loading) return <p>Carregando...</p>;
-    if (error) return <p>{error}</p>;
-
-    // Filtrar apenas agendamentos ativos (não cancelados) e ordenar por data/hora (mais próximo primeiro)
-    const activeReservations = reservations
-      .filter(res => res.status !== 'canceled' && res.status !== 'rejected') // Removes canceled and rejected
-      .sort((a, b) => {
-        // Sort by date/time - closest first
-        const dateA = new Date(a.start_datetime);
-        const dateB = new Date(b.start_datetime);
-        // Invertendo a ordenação (B - A ao invés de A - B)
-        return dateA.getTime() - dateB.getTime();
-      });
-
-    if (activeReservations.length === 0) return <p>Nenhum agendamento ativo.</p>;
-
-    const reservationsToShow = mostrarTodosAgendamentos 
-      ? activeReservations 
-      : activeReservations.slice(0, 3);
-
-    return (
-      <>
-        {reservationsToShow.map((reservation) => (
-          <div key={reservation.id} className={`agendamento-card ${!showNovoAgendamento ? 'full-width' : ''}`}>
-            <div className="card-content">
-              <div className="building-icon">
-                <img src={Campusico} alt="Campus" className="campus-icon" />
-                <span className="campus-name">{reservation.building_name}</span>
-              </div>
-              <div className="card-right">
-                <div className="local-details">
-                  <h3>{reservation.space_name}</h3>
-                </div>
-                <div className="agendamento-info">
-                  <p>{new Date(reservation.start_datetime).toLocaleDateString()}</p>
-                  <p>{`${new Date(reservation.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
-                      ${new Date(reservation.end_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}</p>
-                  <p>{`${reservation.capacity} pessoas`}</p>
-                </div>
-                <div className="header-buttons">
-                  <button className="edit-button" onClick={() => handleEdit(reservation)}>
-                    Editar
-                  </button>
-                  <button 
-                    className="cancel-button-small" 
-                    onClick={() => {
-                      setReservationToCancel(reservation.id);
-                      setShowCancelConfirmation(true);
-                    }}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-        {activeReservations.length > 3 && (
-          <button
-            className="ver-mais"
-            onClick={() => setMostrarTodosAgendamentos(!mostrarTodosAgendamentos)}
-          >
-            {mostrarTodosAgendamentos ? 'Ver menos' : 'Ver mais'}
-          </button>
-        )}
-      </>
-    );
+  // Função de logout
+  const handleLogout = () => {
+    localStorage.removeItem('userProfile');
+    localStorage.removeItem('token');
+    navigate('/login');
   };
 
-  const ErrorMessage = ({ message }: { message: string }) => (
-    <div className="error-message">
-      <p>{message}</p>
-    </div>
-  );
-
-  const validateTimeRange = () => {
-    if (!timeRange.start || !timeRange.end) return false;
-    
-    const [startHour] = timeRange.start.split(':').map(Number);
-    const [endHour] = timeRange.end.split(':').map(Number);
-    
-    return startHour >= 7 && endHour <= 22 && timeRange.start < timeRange.end;
-  };
-
-  // Atualizar a função handleDateSelect (ou criar se não existir)
-  const handleDateSelect = (date: Date | null, event?: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) => {
-    if (date) {
-      setSelectedDate({
-        date,
-        isAvailable: true
-      });
-    }
-  };
-
-  // Adicione esta nova função para resetar os estados
-  const resetAgendamento = () => {
-    setSelectedValues({
-      campus: '',
-      andar: '',
-      sala: ''
+  // Função para selecionar data
+  const handleDateSelect = (date: Date | null) => {
+    setSelectedDate({
+      date,
+      isAvailable: true
     });
+  };
+
+  // Função para resetar agendamento
+  const resetAgendamento = () => {
+    setShowNovoAgendamento(false);
+    setAgendamentoStep('campus');
+    setSelectedValues({ campus: '', andar: '', sala: '' });
     setTimeRange({ start: '', end: '' });
     setSelectedDate({ date: null, isAvailable: true });
     setBookingDetails({
@@ -775,52 +533,32 @@ export const Agendamento: React.FC = () => {
       telefone: '',
       observacao: ''
     });
-    setAgendamentoStep('campus');
-    setShowNovoAgendamento(false);
-    setIsEditing(false);
   };
 
-  // Adicione esta função helper
-  const capitalizeWords = (str: string) => {
-    return str.split(' ').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    ).join(' ');
-  };
-
-  const formatUsername = (username: string) => {
-    return username
-      .split(/[.,@]/)
-      .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-      .join(' ');
-  };
-
-  // Funções para cancelamento
-  const handleCancelClick = (reservationId: number) => {
-    setReservationToCancel(reservationId);
-    setShowCancelConfirmation(true);
-  };
-
+  // Funções para lidar com cancelamento
   const handleCancelConfirm = async () => {
     if (reservationToCancel) {
       try {
-        const result = await cancelReservation(reservationToCancel);
+        // await cancelReservation(reservationToCancel);
         
-        if (result.ok) {
-          // Atualizar lista de reservas excluindo a cancelada
-          const updatedReservations = await getUserReservations();
+        const canceledReservation = reservations.find(r => r.id === reservationToCancel);
+        if (canceledReservation) {
+          // Atualizar o status localmente
+          const updatedReservations = reservations.map(r => 
+            r.id === reservationToCancel 
+              ? { ...r, status: 'canceled' as const } 
+              : r
+          );
           setReservations(updatedReservations);
-          
-          // Fechar o popup
-          setShowCancelConfirmation(false);
-          setReservationToCancel(null);
-        } else {
-          setError('Não foi possível cancelar a reserva');
+          setHistorico(updatedReservations);
         }
       } catch (error) {
         console.error('Erro ao cancelar reserva:', error);
-        setError('Erro ao cancelar reserva');
+        setError('Erro ao cancelar a reserva');
       }
     }
+    setShowCancelConfirmation(false);
+    setReservationToCancel(null);
   };
 
   const handleCancelClose = () => {
@@ -828,17 +566,41 @@ export const Agendamento: React.FC = () => {
     setReservationToCancel(null);
   };
 
-  // Adicione a função de logout
-  const handleLogout = async () => {
-    try {
-      await api.post('/api/auth/logout/');
-      localStorage.removeItem('token');
-      localStorage.removeItem('userProfile');
-      window.location.href = '/login';
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
+  // useEffect para carregar dados iniciais
+  useEffect(() => {
+    const storedProfile = localStorage.getItem('userProfile');
+    if (!storedProfile) {
+      navigate('/login');
+      return;
     }
-  };
+    setUserProfile(JSON.parse(storedProfile));
+    setBuildings(dummyBuildings);
+    setReservations(dummyReservations);
+    setHistorico(dummyReservations);
+    setLoading(false);
+  }, [navigate]);
+
+  // Carrega os andares quando um campus é selecionado
+  useEffect(() => {
+    if (selectedValues.campus) {
+      const building = dummyBuildings.find(b => b.name === selectedValues.campus);
+      if (building) {
+        const buildingFloors = dummyFloors.filter(f => f.building_id === building.id);
+        setFloors(buildingFloors);
+      }
+    }
+  }, [selectedValues.campus]);
+
+  // Carrega as salas quando um andar é selecionado
+  useEffect(() => {
+    if (selectedValues.andar) {
+      const floor = dummyFloors.find(f => f.name === selectedValues.andar);
+      if (floor) {
+        const floorRooms = dummyRooms.filter(r => r.floor_id === floor.id);
+        setSpaces(floorRooms);
+      }
+    }
+  }, [selectedValues.andar]);
 
   return (
     <div className="agendamento-container">
@@ -909,7 +671,10 @@ export const Agendamento: React.FC = () => {
                             </button>
                             <button 
                               className="cancel-button-small" 
-                              onClick={() => handleCancelClick(reservation.id)}
+                              onClick={() => {
+                                setReservationToCancel(reservation.id);
+                                setShowCancelConfirmation(true);
+                              }}
                             >
                               Cancelar
                             </button>

@@ -33,32 +33,32 @@ ALLOWED_HOSTS = ['sgs-cesmac.up.railway.app', '.railway.app', 'sgs-cesmac.netlif
 # Application definition
 
 INSTALLED_APPS = [
+    'adminlte3',
+    'adminlte3_theme',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',  # Make sure this is included
-    'whitenoise.runserver_nostatic',  # Add this line
-    'adminlte3',
-    'adminlte3_theme',
+    'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
     'accounts.apps.AccountsConfig',  # Use the app config
     'spaces.apps.SpacesConfig',
     'corsheaders',
+    'whitenoise.runserver_nostatic',
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 # Configurações do REST Framework
@@ -204,6 +204,3 @@ LOGIN_URL = '/admin/login/'
 
 # Permitir logout via GET para o AdminLTE
 ADMIN_ALLOW_LOGOUT_VIA_GET = True
-
-if not os.path.exists(STATIC_ROOT):
-    os.makedirs(STATIC_ROOT)

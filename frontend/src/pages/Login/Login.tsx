@@ -6,7 +6,7 @@ import iconePerfil from "../../assets/Icones-Perfil.svg";
 import iconeCadeado from "../../assets/ICONE CADEADO.svg";
 import campus1 from "../../assets/Campus1.svg";
 import "./Login.css";
-import { login } from '../../services/api';
+import { dummyUsers } from '../../services/dummyData';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -15,7 +15,7 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!username.trim() || !password) {
@@ -25,21 +25,27 @@ export const Login: React.FC = () => {
 
     setLoading(true);
     setError("");
-    const fullEmail = `${username}@cesmac.edu.br`;
 
-    try {
-      const result = await login({ email: fullEmail, password });
+    // DUMMY LOGIN - Simplificado e síncrono
+    const user = dummyUsers.find(u => u.username === username.trim());
+    
+    if (user && user.password === password) {
+      // Store user data
+      localStorage.setItem('userProfile', JSON.stringify({
+        id: dummyUsers.indexOf(user) + 1,
+        email: `${user.username}@cesmac.edu.br`,
+        username: user.username,
+        first_name: user.username.split('.')[0],
+        last_name: user.username.split('.')[1] || ''
+      }));
       
-      if (result.ok) {
-        // Navegar para página de agendamento
-        navigate('/agendamento');
-      } else {
-        setError(result.error || "Usuário ou senha incorretos");
-      }
-    } catch (error) {
-      console.error('Erro no login:', error);
-      setError("Erro ao fazer login. Tente novamente.");
-    } finally {
+      // Add a dummy token
+      localStorage.setItem('token', 'dummy-token-123');
+      
+      // Navigate to agendamento
+      navigate('/agendamento');
+    } else {
+      setError("Usuário ou senha incorretos");
       setLoading(false);
     }
   };

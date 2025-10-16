@@ -22,7 +22,9 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "types": ["react", "react-dom", "node"]
+    "types": ["react", "react-dom", "node"],
+    "composite": true,
+    "allowSyntheticDefaultImports": true
   },
-  "include": ["src"]
+  "include": ["src", "vite.config.ts"]
 }
