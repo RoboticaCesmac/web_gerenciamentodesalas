@@ -10,31 +10,29 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-import os
-import dj_database_url
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+# Load environment variables from .env file
+load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-oohgk^!qup@9s9fwozk0vg5%66&b-xh!x8&k!p2qiy!6r)-m*+')
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['sgs-cesmac.up.railway.app', '.railway.app', 'sgs-cesmac.netlify.app']
+ALLOWED_HOSTS = []
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'adminlte3',
-    'adminlte3_theme',
+    'jazzmin',  # deve ser o primeiro
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,15 +40,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework.authtoken',
-    'accounts.apps.AccountsConfig',  # Use the app config
-    'spaces.apps.SpacesConfig',
     'corsheaders',
-    'whitenoise.runserver_nostatic',
+    'accounts.apps.AccountsConfig',
+    'spaces.apps.SpacesConfig',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -58,76 +53,20 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
-
-# Configurações do REST Framework
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-}
-
-# Configurações CORS para o frontend Vite
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://sgs-cesmac.netlify.app",
-]
-
-CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
-
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-
-# Configurações de autenticação
-AUTH_USER_MODEL = 'accounts.CustomUser'
 
 ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            BASE_DIR / 'spaces' / 'templates',
-            BASE_DIR / 'templates',
-        ],
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'django.template.context_processors.static',
-            ],
-            'builtins': [
-                'django.templatetags.static',
-                'django.templatetags.i18n',
-                'spaces.templatetags.admin_filters',  # Add this line
             ],
         },
     },
@@ -140,10 +79,10 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-        conn_max_age=600
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 
@@ -169,7 +108,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'pt-BR'
 
 TIME_ZONE = 'America/Sao_Paulo'
 
@@ -179,28 +118,101 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
+    BASE_DIR / 'static',
+    Path(r'F:\sist-ger-sala\frontend\src\assets'),
 ]
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# Media files
+# Media files configuration
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'mediafiles'
+MEDIA_ROOT = BASE_DIR / 'media'
 
-# Add logging configuration
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
-# Configurações de autenticação
-LOGOUT_URL = '/logout/'
-LOGOUT_REDIRECT_URL = '/admin/login/'
-LOGIN_REDIRECT_URL = '/admin/'
-LOGIN_URL = '/admin/login/'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Permitir logout via GET para o AdminLTE
-ADMIN_ALLOW_LOGOUT_VIA_GET = True
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# Configurações do Jazzmin
+JAZZMIN_SETTINGS = {
+    "site_title": "Gerenciador WEB",
+    "site_header": "Sistema de Gerenciamento",
+    "site_brand": "CESMAC",
+    "welcome_sign": "Bem-vindo ao Sistema de Gerenciamento",
+    "copyright": "CESMAC",
+    "search_model": ["auth.User", "spaces.Space"],
+    "topmenu_links": [
+        {"name": "Início", "url": "admin:index"},
+    ],
+    "usermenu_links": [],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    # Removendo a organização em pastas e definindo ordem plana
+    "order_with_respect_to": [
+        "spaces.Building",  # Campus
+        "spaces.FloorPlan", # Plantas
+        "spaces.SpaceType", # Tipos de Espaço
+        "spaces.Space",     # Salas
+        "spaces.Reservation", # Reservas
+        "spaces.Notification", # Notificações
+        "accounts.CustomUser", # Usuários
+        "auth.Group",       # Grupos
+    ],
+    # Renomeando rótulos para português
+    "custom_links": {},
+    "icons": {
+        "accounts.CustomUser": "fas fa-user",
+        "auth.Group": "fas fa-users-cog",
+        "spaces.Building": "fas fa-university",  # Mudando ícone para representar campus
+        "spaces.FloorPlan": "fas fa-map",
+        "spaces.SpaceType": "fas fa-list",
+        "spaces.Space": "fas fa-door-open",
+        "spaces.Reservation": "fas fa-calendar",
+        "spaces.Notification": "fas fa-bell",
+    },
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+    "related_modal_active": True,
+    "custom_css": "custom_admin.css",
+    "custom_js": None,
+    "show_ui_builder": False,
+    "changeform_format": "horizontal_tabs",
+    "language_chooser": False,
+    "site_logo": "livro-cesmac.svg",
+    "site_icon": None,
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-primary",
+    "accent": "accent-primary",
+    "navbar": "navbar-dark",
+    "no_navbar_border": False,
+    "navbar_fixed": True,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "default",
+    "dark_mode_theme": None,
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    }
+}

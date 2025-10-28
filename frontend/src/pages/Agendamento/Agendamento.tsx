@@ -363,9 +363,7 @@ export const Agendamento: React.FC = () => {
     }
     
     if (agendamentoStep === 'andar') {
-      // Se estiver no passo 'andar' e todos os campos estiverem preenchidos
       if (canProceedToNext() && selectedDate.date) {
-        // Atualizar os detalhes da reserva
         setBookingDetails({
           ...bookingDetails,
           campus: selectedValues.campus,
@@ -377,14 +375,12 @@ export const Agendamento: React.FC = () => {
             fim: timeRange.end
           }
         });
-        // Avançar para o passo de confirmação
         setAgendamentoStep('confirmacao');
       }
       return;
     }
 
     if (agendamentoStep === 'confirmacao') {
-      // Avançar para o resumo se os campos obrigatórios estiverem preenchidos
       if (bookingDetails.curso && bookingDetails.telefone) {
         setAgendamentoStep('resumo');
       } else {
@@ -395,33 +391,39 @@ export const Agendamento: React.FC = () => {
     
     if (agendamentoStep === 'resumo') {
       try {
-        if (!selectedSpace) {
-          throw new Error('Nenhum espaço selecionado');
-        }
-
-        const [day, month, year] = bookingDetails.data.split('/');
-        const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;        
-        
-        const reservationData = {
-          title: bookingDetails.curso, // Adicione o título usando o curso
-          space: selectedSpace.id,
-          start_datetime: `${formattedDate}T${bookingDetails.horario.inicio}:00`,
-          end_datetime: `${formattedDate}T${bookingDetails.horario.fim}:00`,
+        // Create a new dummy reservation
+        const newReservation: Reservation = {
+          id: Date.now(), // Use timestamp as temporary ID
+          title: bookingDetails.curso,
           description: bookingDetails.observacao || '',
-          phone: bookingDetails.telefone || '',
-          status: 'pending'
+          space: 1,
+          space_name: bookingDetails.sala,
+          building: 1,
+          building_name: bookingDetails.campus,
+          floor_name: bookingDetails.andar,
+          start_datetime: new Date(
+            selectedDate.date!.setHours(
+              parseInt(bookingDetails.horario.inicio.split(':')[0]),
+              parseInt(bookingDetails.horario.inicio.split(':')[1])
+            )
+          ).toISOString(),
+          end_datetime: new Date(
+            selectedDate.date!.setHours(
+              parseInt(bookingDetails.horario.fim.split(':')[0]),
+              parseInt(bookingDetails.horario.fim.split(':')[1])
+            )
+          ).toISOString(),
+          status: 'pending',
+          user_email: userProfile?.email || '',
+          capacity: 30
         };
 
-        const result = await createReservation(reservationData);
-
-        if (result.ok) {
-          setAgendamentoStep('sucesso');
-          // Atualizar lista de reservas
-          const updatedReservations = await getUserReservations();
-          setReservations(updatedReservations);
-        } else {
-          setError(result.error || 'Erro ao criar reserva');
-        }
+        // Add the new reservation to both lists
+        setReservations(prev => [...prev, newReservation]);
+        setHistorico(prev => [...prev, newReservation]);
+        
+        // Move to success step
+        setAgendamentoStep('sucesso');
       } catch (error) {
         console.error('Erro:', error);
         setError('Erro ao criar agendamento. Tente novamente.');
@@ -483,20 +485,20 @@ export const Agendamento: React.FC = () => {
 
   const mapStatusToClassName = (status: string) => {
     const statusMap: Record<string, string> = {
-      'confirmado': 'confirmado', // Alterado de 'approved'
+      'confirmado': 'confirmado',
       'pending': 'pendente',
       'canceled': 'cancelado',
-      'completed': 'Concluído'
+      'completed': 'concluido' // Changed from 'Concluído' to 'concluido'
     };
     return statusMap[status] || status;
   };
 
   const getStatusText = (status: string) => {
     const statusMap: Record<string, string> = {
-      'confirmado': 'Confirmado', // Alterado de 'Aprovado'
+      'confirmado': 'Confirmado',
       'pending': 'Pendente',
       'canceled': 'Cancelado',
-      'completed': 'Concluído'
+      'completed': 'Concluído' // This can stay capitalized as it's display text
     };
     return statusMap[status] || status;
   };

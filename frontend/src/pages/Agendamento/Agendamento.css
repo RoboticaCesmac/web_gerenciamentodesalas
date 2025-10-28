@@ -546,7 +546,7 @@ p {
 .historico-card {
   background: #FFFFFF;
   border-radius: 10px;
-  padding: 16px;
+  padding: 16px 0 16px 0px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: width 0.3s ease;
 }
@@ -556,6 +556,7 @@ p {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
+  margin-left: 16px;
 }
 
 /* Base tag styles */
@@ -626,6 +627,7 @@ p {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-left: 16px;
 }
 
 .location-row {

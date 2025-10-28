@@ -4,7 +4,8 @@ export const dummyUsers = [
   { username: "wagener.araujo", password: "senhasgs" },
   { username: "mozart.melo", password: "senhasgs" },
   { username: "carlos.filho", password: "senhasgs" },
-  { username: "enzo.machado", password: "senhasgs" }
+  { username: "enzo.machado", password: "senhasgs" },
+  { username: "sergio.venancio", password: "senhasgs" }
 ];
 
 export const dummyBuildings = [
@@ -17,7 +18,16 @@ export const dummyBuildings = [
 export const dummyFloors = [
   { id: 1, name: "Andar 1", building_id: 1 },
   { id: 2, name: "Andar 2", building_id: 1 },
-  { id: 3, name: "Andar 3", building_id: 1 }
+  { id: 3, name: "Andar 3", building_id: 1 },
+  { id: 1, name: "Andar 1", building_id: 2 },
+  { id: 2, name: "Andar 2", building_id: 2 },
+  { id: 3, name: "Andar 3", building_id: 2 },
+  { id: 1, name: "Andar 1", building_id: 3 },
+  { id: 2, name: "Andar 2", building_id: 3 },
+  { id: 3, name: "Andar 3", building_id: 3 },
+  { id: 1, name: "Andar 1", building_id: 4 },
+  { id: 2, name: "Andar 2", building_id: 4 },
+  { id: 3, name: "Andar 3", building_id: 4 },
 ];
 
 export const dummyRooms: Space[] = [

@@ -1,0 +1,17 @@
+.field-start_time input[type="time"],
+.field-end_time input[type="time"] {
+    width: 100px;
+    padding: 5px;
+}
+
+.reservation-recurring {
+    display: none;
+}
+
+.recurring-active .reservation-single {
+    display: none;
+}
+
+.recurring-active .reservation-recurring {
+    display: block;
+}

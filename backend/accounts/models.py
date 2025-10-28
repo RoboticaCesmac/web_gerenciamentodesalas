@@ -1,33 +1,21 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.core.exceptions import ValidationError
-
-def validate_cesmac_email(value):
-    if not value:
-        return
-    if not value.endswith('@cesmac.edu.br'):
-        raise ValidationError('Apenas emails @cesmac.edu.br são permitidos.')
+from django.core.validators import RegexValidator
 
 class CustomUser(AbstractUser):
     email = models.EmailField(
-        unique=False,
-        validators=[validate_cesmac_email],
-        blank=True,
-        null=True
+        'E-mail',
+        unique=True,
+        validators=[
+            RegexValidator(
+                regex=r'@cesmac\.edu\.br$',
+                message='Email deve ser do domínio @cesmac.edu.br'
+            )
+        ]
     )
-    profile_photo = models.URLField(
-        blank=True, 
-        help_text="URL para foto do perfil"
-    )
-    
-    USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = []
-    
-    def save(self, *args, **kwargs):
-        if self.email:
-            self.email = self.email.lower()
-        super().save(*args, **kwargs)
+    profile_photo = models.CharField('Foto de Perfil', max_length=200, null=True, blank=True)
 
     class Meta:
+        db_table = 'usuarios'
         verbose_name = 'Usuário'
         verbose_name_plural = 'Usuários'

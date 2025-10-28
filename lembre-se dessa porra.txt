@@ -1,0 +1,84 @@
+-- Usuários (CustomUser)
+CREATE TABLE usuarios (
+    id NUMBER PRIMARY KEY,
+    username VARCHAR2(150) UNIQUE NOT NULL,
+    email VARCHAR2(254),
+    first_name VARCHAR2(150),
+    last_name VARCHAR2(150),
+    password VARCHAR2(128) NOT NULL,
+    is_staff NUMBER(1) DEFAULT 0,
+    is_active NUMBER(1) DEFAULT 1,
+    date_joined TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    profile_photo VARCHAR2(200),
+    CONSTRAINT chk_email_domain CHECK (email LIKE '%@cesmac.edu.br')
+);
+
+-- Prédios (Building)
+CREATE TABLE predios (
+    id NUMBER PRIMARY KEY,
+    name VARCHAR2(100) UNIQUE NOT NULL,
+    endereco CLOB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tipos de Espaço (SpaceType)
+CREATE TABLE tipos_salas (
+    id NUMBER PRIMARY KEY,
+    type VARCHAR2(90) DEFAULT 'Sala Padrão',
+    description VARCHAR2(500) DEFAULT 'Descrição padrão'
+);
+
+-- Plantas dos Andares (FloorPlan)
+CREATE TABLE plantas (
+    id NUMBER PRIMARY KEY,
+    building_id NUMBER REFERENCES buildings(id),
+    floor_name VARCHAR2(50),
+    plan_image VARCHAR2(500),
+    plan_image_url VARCHAR2(500),
+    CONSTRAINT uk_building_floor UNIQUE (building_id, floor_name)
+);
+
+-- Espaços (Space)
+CREATE TABLE salas (
+    id NUMBER PRIMARY KEY,
+    name VARCHAR2(100),
+    building_id NUMBER REFERENCES buildings(id),
+    space_type_id NUMBER REFERENCES space_types(id),
+    floor_name VARCHAR2(50),
+    capacity NUMBER DEFAULT 0,
+    is_active NUMBER(1) DEFAULT 1,
+    location_x FLOAT,
+    location_y FLOAT,
+    CONSTRAINT uk_building_space UNIQUE (building_id, name)
+);
+
+-- Reservas (Reservation)
+CREATE TABLE reservas (
+    id NUMBER PRIMARY KEY,
+    building_id NUMBER REFERENCES buildings(id),
+    space_id NUMBER REFERENCES spaces(id),
+    user_id NUMBER REFERENCES auth_user(id),
+    title VARCHAR2(200),
+    description VARCHAR2(1400),
+    phone VARCHAR2(20),
+    start_datetime TIMESTAMP,
+    end_datetime TIMESTAMP,
+    status VARCHAR2(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_recurring NUMBER(1) DEFAULT 0,
+    recurrence_end_date DATE,
+    CONSTRAINT chk_status CHECK (status IN ('pending', 'approved', 'rejected', 'canceled'))
+);
+
+-- Notificações (Notification)
+CREATE TABLE notificacoes (
+    id NUMBER PRIMARY KEY,
+    reservation_id NUMBER REFERENCES reservations(id),
+    user_id NUMBER REFERENCES auth_user(id),
+    status VARCHAR2(20) DEFAULT 'not_seen',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_modified_by NUMBER REFERENCES auth_user(id),
+    CONSTRAINT chk_notification_status CHECK (status IN ('not_seen', 'open', 'closed'))
+);
