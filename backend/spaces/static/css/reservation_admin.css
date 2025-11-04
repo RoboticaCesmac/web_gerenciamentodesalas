@@ -1,7 +1,23 @@
 .field-start_time input[type="time"],
-.field-end_time input[type="time"] {
-    width: 100px;
+.field-end_time input[type="time"],
+.field-monday_start input[type="time"],
+.field-monday_end input[type="time"],
+.field-tuesday_start input[type="time"],
+.field-tuesday_end input[type="time"],
+.field-wednesday_start input[type="time"],
+.field-wednesday_end input[type="time"],
+.field-thursday_start input[type="time"],
+.field-thursday_end input[type="time"],
+.field-friday_start input[type="time"],
+.field-friday_end input[type="time"],
+.field-saturday_start input[type="time"],
+.field-saturday_end input[type="time"],
+.field-sunday_start input[type="time"],
+.field-sunday_end input[type="time"] {
+    width: 120px;
     padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
 }
 
 .reservation-recurring {
@@ -14,4 +30,71 @@
 
 .recurring-active .reservation-recurring {
     display: block;
+}
+
+/* Organize day fields in pairs */
+.field-monday_start, .field-monday_end,
+.field-tuesday_start, .field-tuesday_end,
+.field-wednesday_start, .field-wednesday_end,
+.field-thursday_start, .field-thursday_end,
+.field-friday_start, .field-friday_end,
+.field-saturday_start, .field-saturday_end,
+.field-sunday_start, .field-sunday_end {
+    display: inline-block;
+    margin-right: 20px;
+}
+
+.field-recurring_days .checkboxes {
+    margin-bottom: 20px;
+}
+
+input[type="time"] {
+    width: 120px;
+}
+
+#weekly-times-container {
+    margin: 20px 0;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+}
+
+.time-fields-day {
+    margin-bottom: 10px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}
+
+.time-fields-day h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.time-inputs {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.time-inputs label {
+    font-weight: normal;
+    color: #666;
+}
+
+.time-inputs input[type="time"] {
+    width: 120px !important;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.field-recurring_days .checkboxlist li {
+    list-style: none;
+    margin-bottom: 5px;
+}
+
+.field-recurring_days .checkboxlist input[type="checkbox"] {
+    margin-right: 5px;
 }

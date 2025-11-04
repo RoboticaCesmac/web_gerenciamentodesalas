@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from .models import Building, SpaceType, FloorPlan, Space, Reservation, Notification
-from .forms import SpaceAdminForm, ReservationAdminForm  # Add ReservationAdminForm to imports
+from .forms import SpaceAdminForm, ReservationAdminForm
 
 @admin.register(Building)
 class BuildingAdmin(admin.ModelAdmin):
@@ -146,15 +146,42 @@ class SpaceAdmin(admin.ModelAdmin):
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
     form = ReservationAdminForm
-    list_display = ('space', 'user', 'date', 'start_time', 'end_time', 'is_recurring')
-    list_filter = ('space', 'user', 'date', 'is_recurring')
+    list_display = ('space', 'user', 'get_time_display', 'is_recurring')
+    list_filter = ('space', 'user', 'is_recurring')
     search_fields = ('space__name', 'user__username', 'description')
 
-    class Media:
-        js = ('admin/js/reservation_admin.js',)
+    fieldsets = (
+        ('Geral', {
+            'fields': ('space', 'user', 'description', 'is_recurring')  # Removed recurring_times
+        }),
+        ('Reserva Única', {
+            'fields': ('date', 'start_time', 'end_time'),
+            'classes': ('single-reservation',)
+        }),
+        ('Reserva Recorrente', {
+            'fields': (
+                'recurring_days', 'recurring_start_date', 'recurring_end_date',
+            ),
+            'classes': ('recurring-reservation',)
+        }),
+    )
 
-@admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user', 'created_at', 'read')  # Changed fields to match model
-    list_filter = ('read',)  # Changed from 'status' to 'read'
-    search_fields = ('title', 'message', 'user__username')
+    class Media:
+        css = {
+            'all': ('css/reservation_admin.css',)
+        }
+        js = (
+            'admin/js/jquery.init.js',
+            'admin/js/reservation_admin.js',
+        )
+
+    def get_time_display(self, obj):
+        if obj.is_recurring:
+            days = []
+            for day_num in (obj.recurring_days or '').split(','):
+                if day_num:
+                    day_name = dict(self.form.WEEKDAYS).get(day_num, '')
+                    days.append(day_name)
+            return f"Recorrente: {', '.join(days)}"
+        return f"{obj.date.strftime('%d/%m/%Y')} {obj.start_time.strftime('%H:%M')} - {obj.end_time.strftime('%H:%M')}"
+    get_time_display.short_description = 'Horário'
