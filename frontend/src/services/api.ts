@@ -1,134 +1,185 @@
 import axios from 'axios';
+import type { ReservationData } from '../types';
 
 const api = axios.create({
-  baseURL: import.meta.env.PROD 
-    ? 'https://sgs-cesmac.netlify.app/api'
-    : 'http://localhost:5173/api',
-  withCredentials: true
-});
-
-// Interceptor para adicionar o token em todas as requisições
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Token ${token}`;
-  }
-  return config;
-});
-
-export const login = async (credentials: { email: string; password: string }) => {
-  try {
-    const response = await api.post('/auth/login/', credentials);
-    
-    if (response.status === 200 && response.data.token) {
-      // Configurar o token
-      localStorage.setItem('token', response.data.token);
-      
-      // Configurar o token no axios
-      api.defaults.headers.common['Authorization'] = `Token ${response.data.token}`;
-      
-      // Salvar dados do usuário
-      if (response.data.user) {
-        localStorage.setItem('userProfile', JSON.stringify(response.data.user));
-      }
-      
-      return { ok: true, token: response.data.token };
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
     }
-    
-    return { ok: false, error: 'Credenciais inválidas' };
-  } catch (error) {
-    console.error('Erro no login:', error);
-    return { ok: false, error: 'Erro ao fazer login' };
-  }
+});
+
+// Authentication
+export const login = async (username: string, password: string) => {
+    try {
+        console.log('Login attempt:', { username });
+        
+        localStorage.removeItem('token');
+        delete api.defaults.headers.common['Authorization'];
+        
+        const response = await api.post('/api/auth/login/', {
+            username: username.trim(),
+            password: password
+        });
+        
+        if (response.data && response.data.token) {
+            const token = response.data.token;
+            localStorage.setItem('token', token);
+            api.defaults.headers.common['Authorization'] = `Token ${token}`;
+            return response.data;
+        }
+        
+        throw new Error('Token não recebido do servidor');
+    } catch (error: any) {
+        console.error('Login error:', error);
+        throw new Error(error.response?.data?.detail || 'Erro de autenticação');
+    }
 };
 
-export const getUserProfile = async () => {
-  const response = await api.get('/auth/profile/');
-  return response.data;
-};
-
-export const getUserReservations = async () => {
-  try {
-    const response = await api.get('reservations/');
-    return response.data;
-  } catch (error) {
-    console.error('Erro ao buscar reservas:', error);
-    throw error;
-  }
-};
-
-export const createReservation = async (data: any) => {
-  try {
+// Auth interceptor
+api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('Token não encontrado');
+    if (token) {
+        config.headers.Authorization = `Token ${token}`;
     }
+    return config;
+});
 
-    const response = await api.post('/reservations/', data, {
-      headers: {
-        'Authorization': `Token ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    return { ok: true, data: response.data };
-  } catch (error: any) {
-    console.error('Erro ao criar reserva:', error.response?.data || error.message);
-    return { 
-      ok: false, 
-      error: error.response?.data?.detail || 'Erro ao criar reserva'
-    };
-  }
+// API endpoints
+export const getUserProfile = async () => {
+    const response = await api.get('/api/users/profile/');
+    return response.data;
 };
 
 export const getBuildings = async () => {
-  const response = await api.get('/buildings/');
-  return response.data;
+    const response = await api.get('/api/buildings/');
+    return response.data;
 };
 
-export const getFloorsByBuilding = async (buildingId: number) => {
-  const response = await api.get(`/buildings/${buildingId}/floors/`);
-  return response.data;
+export const getFloors = async (buildingId: number) => {
+    const response = await api.get(`/api/buildings/${buildingId}/floors/`);
+    return response.data;
 };
 
-export const getSpacesByFloor = async (floorId: number) => {
-  const response = await api.get(`/floors/${floorId}/spaces/`);
-  return response.data;
+export const getSpaces = async (buildingId: number, floorId: number) => {
+    if (!buildingId || !floorId || isNaN(buildingId) || isNaN(floorId)) {
+        throw new Error('Building ID and Floor ID are required');
+    }
+    
+    const response = await api.get('/api/spaces/', {
+        params: { 
+            building: buildingId.toString(),
+            floor: floorId.toString()
+        }
+    });
+    return response.data;
 };
 
-export const updateReservation = async (id: number, data: any) => {
-  const response = await fetch(`reservations/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to update reservation');
+export interface ReservationData {
+  space: number;
+  date?: string;
+  start_time?: string;
+  end_time?: string;
+  description: string;
+  status?: string;
+  is_recurring?: boolean;
+  recurring_days?: string[];
+  recurring_start_date?: string;
+  recurring_end_date?: string;
+  recurring_horarios?: {
+    [key: string]: { inicio: string; fim: string };
+  };
+}
+
+export const createReservation = async (data: ReservationData) => {
+  try {
+    console.log('Creating reservation with data:', data);
+    
+    // Preparar dados para enviar
+    const reservationPayload: any = {
+      space: data.space,
+      description: data.description || '',
+      status: 'pending',
+      is_recurring: data.is_recurring || false
+    };
+
+    if (data.is_recurring) {
+      // Para reservas recorrentes
+      reservationPayload.recurring_days = (data.recurring_days || []).join(',');
+      reservationPayload.recurring_start_date = data.recurring_start_date;
+      reservationPayload.recurring_end_date = data.recurring_end_date;
+      reservationPayload.recurring_times = {};
+      
+      // Mapear os horários para cada dia
+      const dayMap: { [key: string]: [string, string] } = {
+        'seg': ['monday_start', 'monday_end'],
+        'ter': ['tuesday_start', 'tuesday_end'],
+        'qua': ['wednesday_start', 'wednesday_end'],
+        'qui': ['thursday_start', 'thursday_end'],
+        'sex': ['friday_start', 'friday_end'],
+        'sab': ['saturday_start', 'saturday_end'],
+        'dom': ['sunday_start', 'sunday_end']
+      };
+
+      (data.recurring_days || []).forEach(day => {
+        const horarios = data.recurring_horarios?.[day];
+        if (horarios && dayMap[day]) {
+          const [startField, endField] = dayMap[day];
+          reservationPayload[startField] = horarios.inicio;
+          reservationPayload[endField] = horarios.fim;
+          
+          reservationPayload.recurring_times[day] = {
+            start: horarios.inicio,
+            end: horarios.fim
+          };
+        }
+      });
+
+      // Data e hora são obrigatórios no modelo, usar o primeiro dia
+      reservationPayload.date = data.recurring_start_date;
+      reservationPayload.start_time = data.recurring_horarios?.['seg']?.inicio || '09:00';
+      reservationPayload.end_time = data.recurring_horarios?.['seg']?.fim || '10:00';
+    } else {
+      // Para reservas únicas
+      reservationPayload.date = data.date;
+      reservationPayload.start_time = data.start_time;
+      reservationPayload.end_time = data.end_time;
+    }
+
+    console.log('Payload being sent:', reservationPayload);
+
+    const response = await api.post('/api/reservations/', reservationPayload);
+    console.log('Reservation created:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Reservation creation error:', error.response);
+    throw new Error(error.response?.data?.detail || 'Erro ao criar reserva');
   }
-  
-  return response.json();
+};
+
+export const getUserReservations = async () => {
+    try {
+        const response = await api.get('/api/reservations/');
+        console.log('Received reservations:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching reservations:', error);
+        throw error;
+    }
+};
+
+export const checkAvailability = async (spaceId: number, date: string) => {
+    const response = await api.get(`/api/spaces/${spaceId}/availability/`, {
+        params: { date }
+    });
+    return response.data;
 };
 
 export const cancelReservation = async (reservationId: number) => {
-  try {
-    const response = await api.patch(`/reservations/${reservationId}/`, {
-      status: 'canceled'
+    const response = await api.patch(`/api/reservations/${reservationId}/`, {
+        status: 'canceled'
     });
-    
-    if (response.status === 200) {
-      return { ok: true, data: response.data };
-    } else {
-      console.error('Erro na resposta:', response);
-      return { ok: false, error: 'Erro ao cancelar reserva' };
-    }
-  } catch (error) {
-    console.error('Erro ao cancelar reserva:', error);
-    return { ok: false, error: 'Erro ao cancelar reserva' };
-  }
+    return response.data;
 };
 
-// Export the api instance
 export { api };

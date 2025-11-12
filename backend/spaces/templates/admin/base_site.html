@@ -1,0 +1,14 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <link rel="stylesheet" href="/static/admin/css/hide_token.css">
+    <script src="/static/admin/js/hide_token.js"></script>
+    <style>
+        /* Esconder Token direto no CSS */
+        a[href*="authtoken"],
+        tr:has(a[href*="authtoken"]) {
+            display: none !important;
+        }
+    </style>
+{% endblock %}

@@ -12,26 +12,38 @@ export interface Floor {
 export interface Space {
   id: number;
   name: string;
+  floor_id: number;
   capacity: number;
   building: number;
   floor_name: string;
-  floor_id: number;
 }
 
 export interface Reservation {
   id: number;
-  title: string;
-  description: string;
   space: number;
   space_name: string;
-  building: number;
   building_name: string;
   floor_name: string;
-  start_datetime: string;
-  end_datetime: string;
-  status: 'confirmado' | 'pending' | 'rejected' | 'completed' | 'canceled';
+  date: string;
+  start_time: string;
+  end_time: string;
+  description?: string;
+  status: 'pending' | 'confirmado' | 'canceled' | 'completed';
   user_email: string;
   capacity: number;
+}
+
+export interface ReservationData {
+  space: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  description?: string;
+  status?: string;
+  is_recurring?: boolean;
+  recurring_days?: string[];
+  recurring_start_date?: string;
+  recurring_end_date?: string;
 }
 
 export interface StepContent {

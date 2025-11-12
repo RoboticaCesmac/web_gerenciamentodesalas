@@ -1,21 +1,21 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { login } from "../../services/api";
 import logoCesmac from "../../assets/logo-CESMAC.svg";
-import logoCesmacRedux from "../../assets/logo-CESMAC-redux.svg"
+import logoCesmacRedux from "../../assets/logo-CESMAC-redux.svg";
 import iconePerfil from "../../assets/Icones-Perfil.svg";
 import iconeCadeado from "../../assets/ICONE CADEADO.svg";
 import campus1 from "../../assets/Campus1.svg";
 import "./Login.css";
-import { dummyUsers } from '../../services/dummyData';
 
 export const Login: React.FC = () => {
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(""); // Changed from email
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!username.trim() || !password) {
@@ -26,26 +26,22 @@ export const Login: React.FC = () => {
     setLoading(true);
     setError("");
 
-    // DUMMY LOGIN - Simplificado e síncrono
-    const user = dummyUsers.find(u => u.username === username.trim());
-    
-    if (user && user.password === password) {
-      // Store user data
-      localStorage.setItem('userProfile', JSON.stringify({
-        id: dummyUsers.indexOf(user) + 1,
-        email: `${user.username}@cesmac.edu.br`,
-        username: user.username,
-        first_name: user.username.split('.')[0],
-        last_name: user.username.split('.')[1] || ''
-      }));
+    try {
+      console.log('Attempting login with:', { username }); // Debug log
+      const response = await login(username, password);
+      console.log('Login response:', response); // Debug log
       
-      // Add a dummy token
-      localStorage.setItem('token', 'dummy-token-123');
-      
-      // Navigate to agendamento
-      navigate('/agendamento');
-    } else {
-      setError("Usuário ou senha incorretos");
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('userProfile', JSON.stringify(response.user));
+        navigate('/agendamento');
+      } else {
+        throw new Error('Token não recebido');
+      }
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || "Erro ao fazer login. Verifique suas credenciais.");
+    } finally {
       setLoading(false);
     }
   };
@@ -64,13 +60,13 @@ export const Login: React.FC = () => {
 
         <form className="login-form" onSubmit={handleLogin}>
           <div className="input-container">
-            <img src={iconePerfil} alt="" className="input-icon" />
+            <img src={iconePerfil} alt="Ícone de perfil" className="input-icon" />
             <input
-              type="text"
+              type="text" // Changed from email to text
               className="login-input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Insira seu usuário"
+              placeholder="Nome de usuário" // Changed placeholder
               disabled={loading}
             />
           </div>

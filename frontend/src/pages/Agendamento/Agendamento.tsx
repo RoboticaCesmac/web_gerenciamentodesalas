@@ -20,18 +20,20 @@ import MensagemIcon from '../../assets/Icones-Mensagem.svg';
 import CheckIcon from '../../assets/check.svg';
 import BigCheckIcon from '../../assets/Big-Check.svg';
 import { 
-  api,
-  getUserProfile,
-  getUserReservations,
-  createReservation,
-  cancelReservation 
+    api,
+    getUserProfile,
+    getUserReservations,
+    createReservation,
+    cancelReservation,
+    getBuildings,
+    getFloors,
+    getSpaces,
+    checkAvailability
 } from '../../services/api';
 import type { 
-  Space, 
-  Reservation, 
-  StepContent, 
-  Building,
-  Floor 
+    Space, 
+    Reservation, 
+    ReservationData 
 } from '../../types';
 import { 
   dummyBuildings, 
@@ -75,6 +77,14 @@ interface BookingDetails {
   curso: string;
   telefone: string;
   observacao: string;
+  isRecurring: boolean;
+  recurringDays: string[];
+  recurringStartDate: string;
+  recurringEndDate: string;
+  // Novo: horários para cada dia da semana
+  recurringHorarios: {
+    [key: string]: { inicio: string; fim: string };
+  };
 }
 
 interface UserProfile {
@@ -119,7 +129,20 @@ export const Agendamento: React.FC = () => {
     horario: { inicio: '', fim: '' },
     curso: '',
     telefone: '',
-    observacao: ''
+    observacao: '',
+    isRecurring: false,
+    recurringDays: [],
+    recurringStartDate: '',
+    recurringEndDate: '',
+    recurringHorarios: {
+      seg: { inicio: '', fim: '' },
+      ter: { inicio: '', fim: '' },
+      qua: { inicio: '', fim: '' },
+      qui: { inicio: '', fim: '' },
+      sex: { inicio: '', fim: '' },
+      sab: { inicio: '', fim: '' },
+      dom: { inicio: '', fim: '' }
+    }
   });
   const [isEditing, setIsEditing] = useState(false);
 
@@ -136,30 +159,196 @@ export const Agendamento: React.FC = () => {
   // Adicione o estado para selectedSpace
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null);
 
+  // Função para validar a entrada do telefone
+  const validatePhoneInput = (value: string): string => {
+    // Remove tudo que não é número
+    const cleaned = value.replace(/\D/g, '');
+    
+    // Aplica a máscara (xx) x xxxx-xxxx
+    if (cleaned.length === 0) return '';
+    if (cleaned.length <= 2) return `(${cleaned}`;
+    if (cleaned.length <= 7) return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2)}`;
+    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 3)} ${cleaned.slice(3, 7)}-${cleaned.slice(7, 11)}`;
+  };
+
+  // Load initial data
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        
+        // Load user profile
+        const storedProfile = localStorage.getItem('userProfile');
+        if (!storedProfile) {
+          navigate('/login');
+          return;
+        }
+        setUserProfile(JSON.parse(storedProfile));
+
+        // Load buildings
+        const buildingsData = await getBuildings();
+        setBuildings(buildingsData);
+
+        // Load user's reservations
+        const reservationsData = await getUserReservations();
+        const activeReservations = reservationsData.filter(
+          (res: any) => res.status !== 'canceled' && res.status !== 'completed'
+        );
+        setReservations(activeReservations);
+        setHistorico(reservationsData);
+
+      } catch (err: any) {
+        console.error('Error loading data:', err);
+        setError(err.response?.data?.message || "Erro ao carregar dados");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, [navigate]);
+
+  // Load floors when building is selected
+  useEffect(() => {
+    const loadFloors = async () => {
+      if (selectedValues.campus) {
+        try {
+          const buildingId = buildings.find(b => b.name === selectedValues.campus)?.id;
+          if (buildingId) {
+            const floorsData = await getFloors(buildingId);
+            setFloors(floorsData);
+          }
+        } catch (err: any) {
+          console.error('Error loading floors:', err);
+          setError(err.response?.data?.message || "Erro ao carregar andares");
+        }
+      }
+    };
+
+    loadFloors();
+  }, [selectedValues.campus, buildings]);
+
+  // Load spaces when floor is selected
+  useEffect(() => {
+    const loadSpaces = async () => {
+        if (selectedValues.campus && selectedValues.andar) {
+            try {
+                const building = buildings.find(b => b.name === selectedValues.campus);
+                const floor = floors.find(f => f.name === selectedValues.andar);
+                
+                if (building?.id && floor?.id) {
+                    const spacesData = await getSpaces(building.id, floor.id);
+                    setSpaces(spacesData);
+                } else {
+                    // Reset spaces if we don't have valid IDs
+                    setSpaces([]);
+                }
+            } catch (err: any) {
+                console.error('Error loading spaces:', err);
+                setError(err.response?.data?.message || "Erro ao carregar salas");
+            }
+        } else {
+            // Reset spaces if we don't have both campus and floor selected
+            setSpaces([]);
+        }
+    };
+
+    loadSpaces();
+  }, [selectedValues.andar, selectedValues.campus, buildings, floors]);
+
+  // Update the space selection handler
+  const handleSpaceSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const spaceId = e.target.value;
+    const space = spaces.find(s => s.id.toString() === spaceId);
+    
+    console.log('Selected space:', space); // Debug log
+    
+    setSelectedSpace(space || null);
+    setSelectedValues(prev => ({
+        ...prev,
+        sala: spaceId
+    }));
+};
+
   // Função para verificar disponibilidade de um dia específico
   const checkDayAvailability = async (date: Date) => {
     if (!selectedValues.sala || !timeRange.start || !timeRange.end) {
-      return 'disponivel';
-    }
-
-    const currentSpace = selectedSpace;
-    if (!currentSpace) {
-      console.error('Nenhum espaço selecionado');
-      return 'disponivel';
+        return 'disponivel';
     }
 
     try {
-      const availabilityResponse = await api.get(`/api/spaces/${currentSpace.id}/availability/`, {
-        params: {
-          start_time: format(date, "yyyy-MM-dd'T'" + timeRange.start + ':00'),
-          end_time: format(date, "yyyy-MM-dd'T'" + timeRange.end + ':00')
+        const spaceId = parseInt(selectedValues.sala);
+        if (isNaN(spaceId)) {
+            return 'disponivel';
         }
-      });
 
-      return availabilityResponse.data.is_available ? 'disponivel' : 'ocupado';
-    } catch (error) {
-      console.error('Erro ao verificar disponibilidade:', error);
-      return 'ocupado';
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const startTime = timeRange.start;
+        const endTime = timeRange.end;
+
+        // Buscar TODAS as reservas (não apenas do usuário)
+        const allReservations = await api.get('/api/reservations/', {
+            params: { space: spaceId }
+        });
+        
+        console.log('All reservations for space:', allReservations.data);
+        
+        const reservations = allReservations.data;
+
+        // Verificar conflitos normais (reservas únicas)
+        const hasTimeConflict = reservations?.some((res: any) => {
+            if (res.is_recurring) return false;
+            if (!res.date) return false;
+            
+            const resDate = format(new Date(res.date), 'yyyy-MM-dd');
+            if (resDate !== dateStr) return false;
+            
+            const resStart = res.start_time?.substring(0, 5) || '';
+            const resEnd = res.end_time?.substring(0, 5) || '';
+            
+            // Verifica sobreposição de horários
+            return !(endTime <= resStart || startTime >= resEnd);
+        });
+
+        if (hasTimeConflict) {
+            console.log(`Conflito encontrado no dia ${dateStr}`);
+            return 'ocupado';
+        }
+
+        // Verificar conflitos com recorrências
+        const hasRecurringConflict = reservations?.some((res: any) => {
+            if (!res.is_recurring) return false;
+            if (!res.recurring_days) return false;
+            
+            // Verificar se a data está dentro do período de recorrência
+            const startDateRecurring = new Date(res.recurring_start_date);
+            const endDateRecurring = new Date(res.recurring_end_date);
+            
+            if (date < startDateRecurring || date > endDateRecurring) return false;
+            
+            // Verificar se o dia da semana está nos dias recorrentes
+            const dayOfWeek = date.getDay();
+            const dayMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+            const dayCode = dayMap[dayOfWeek as keyof typeof dayMap];
+            
+            if (!res.recurring_days.includes(dayCode)) return false;
+            
+            const resStart = res.start_time?.substring(0, 5) || '';
+            const resEnd = res.end_time?.substring(0, 5) || '';
+            
+            // Verifica sobreposição de horários
+            return !(endTime <= resStart || startTime >= resEnd);
+        });
+
+        if (hasRecurringConflict) {
+            console.log(`Conflito recorrente encontrado no dia ${dateStr}`);
+            return 'ocupado-recorrente';
+        }
+        
+        return 'disponivel';
+    } catch (err) {
+        console.error('Error checking availability:', err);
+        return 'disponivel';
     }
   };
 
@@ -258,7 +447,7 @@ export const Agendamento: React.FC = () => {
     setLoading(false);
   }, [navigate]);
 
-  // Atualizar a função scrollToBottom
+  // Atualize a função scrollToBottom
   const scrollToBottom = () => {
     // Aumentar o timeout para dar tempo do calendário renderizar
     setTimeout(() => {
@@ -355,92 +544,178 @@ export const Agendamento: React.FC = () => {
     }
   };
 
+  // Adicione este estado para controlar as animações
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animationDirection, setAnimationDirection] = useState<'forward' | 'backward'>('forward');
+
+  // Adicione um novo estado para controlar animações
+  const [animatingStep, setAnimatingStep] = useState<AgendamentoStep | null>(null);
+
+  const nextStep: Record<AgendamentoStep, AgendamentoStep> = {
+    'campus': 'andar',
+    'andar': 'confirmacao',
+    'sala': 'confirmacao',
+    'confirmacao': 'resumo',
+    'resumo': 'sucesso',
+    'sucesso': 'campus'
+};
+
   // Atualize a função handleNextStep
   const handleNextStep = async () => {
-    if (agendamentoStep === 'andar' && !canProceedToNext()) {
-      setError('Preencha todos os campos');
-      return;
-    }
+    setAnimatingStep(agendamentoStep);
     
-    if (agendamentoStep === 'andar') {
-      if (canProceedToNext() && selectedDate.date) {
-        setBookingDetails({
-          ...bookingDetails,
-          campus: selectedValues.campus,
-          andar: selectedValues.andar,
-          sala: selectedValues.sala,
-          data: selectedDate.date.toLocaleDateString(),
-          horario: {
-            inicio: timeRange.start,
-            fim: timeRange.end
-          }
-        });
-        setAgendamentoStep('confirmacao');
-      }
-      return;
-    }
+    setTimeout(async () => {
+        if (agendamentoStep === 'resumo') {
+            try {
+                console.log('Selected values:', selectedValues);
+                
+                const selectedSpace = spaces.find(space => space.id.toString() === selectedValues.sala);
+                
+                if (!selectedSpace) {
+                    throw new Error('Sala não encontrada');
+                }
 
-    if (agendamentoStep === 'confirmacao') {
-      if (bookingDetails.curso && bookingDetails.telefone) {
-        setAgendamentoStep('resumo');
-      } else {
-        setError('Preencha todos os campos obrigatórios');
-      }
-      return;
-    }
-    
-    if (agendamentoStep === 'resumo') {
-      try {
-        // Create a new dummy reservation
-        const newReservation: Reservation = {
-          id: Date.now(), // Use timestamp as temporary ID
-          title: bookingDetails.curso,
-          description: bookingDetails.observacao || '',
-          space: 1,
-          space_name: bookingDetails.sala,
-          building: 1,
-          building_name: bookingDetails.campus,
-          floor_name: bookingDetails.andar,
-          start_datetime: new Date(
-            selectedDate.date!.setHours(
-              parseInt(bookingDetails.horario.inicio.split(':')[0]),
-              parseInt(bookingDetails.horario.inicio.split(':')[1])
-            )
-          ).toISOString(),
-          end_datetime: new Date(
-            selectedDate.date!.setHours(
-              parseInt(bookingDetails.horario.fim.split(':')[0]),
-              parseInt(bookingDetails.horario.fim.split(':')[1])
-            )
-          ).toISOString(),
-          status: 'pending',
-          user_email: userProfile?.email || '',
-          capacity: 30
-        };
+                // Validar disponibilidade ANTES de criar a reserva
+                if (!bookingDetails.isRecurring && selectedDate.date) {
+                    const dateStr = format(selectedDate.date, 'yyyy-MM-dd');
+                    
+                    try {
+                        const availability = await checkAvailability(selectedSpace.id, dateStr);
+                        
+                        // Verificar conflitos normais
+                        const hasTimeConflict = availability.reservations?.some((res: any) => {
+                            if (res.is_recurring) return false;
+                            const resStart = res.start_time.substring(0, 5);
+                            const resEnd = res.end_time.substring(0, 5);
+                            // Verifica se há sobreposição: conflito se NOT (fim <= inicio reservado OU inicio >= fim reservado)
+                            return !(timeRange.end <= resStart || timeRange.start >= resEnd);
+                        });
 
-        // Add the new reservation to both lists
-        setReservations(prev => [...prev, newReservation]);
-        setHistorico(prev => [...prev, newReservation]);
-        
-        // Move to success step
-        setAgendamentoStep('sucesso');
-      } catch (error) {
-        console.error('Erro:', error);
-        setError('Erro ao criar agendamento. Tente novamente.');
-      }
-    } else if (agendamentoStep === 'campus') {
-      setAgendamentoStep('andar');
-    }
-  };
+                        // Verificar conflitos com recorrências
+                        const hasRecurringConflict = availability.reservations?.some((res: any) => {
+                            if (!res.is_recurring) return false;
+                            // Verificar se o dia selecionado está nos dias recorrentes
+                            const dayOfWeek = selectedDate.date.getDay();
+                            const dayMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+                            const dayCode = dayMap[dayOfWeek as keyof typeof dayMap];
+                            
+                            if (!res.recurring_days?.includes(dayCode)) return false;
+                            
 
+                            const resStart = res.start_time.substring(0, 5);
+                            const resEnd = res.end_time.substring(0, 5);
+                            return !(timeRange.end <= resStart || timeRange.start >= resEnd);
+                        });
+
+                        if (hasTimeConflict || hasRecurringConflict) {
+                            setError('❌ Horário indisponível! Essa sala já está ocupada nesse período.');
+                            setAnimatingStep(null);
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Erro ao verificar disponibilidade:', error);
+                        // Continua mesmo se houver erro na verificação
+                    }
+                }
+
+                let reservationData: ReservationData;
+
+                if (bookingDetails.isRecurring) {
+                    // Reserva recorrente
+                    reservationData = {
+                        space: selectedSpace.id,
+                        description: bookingDetails.observacao,
+                        status: 'pending',
+                        is_recurring: true,
+                        recurring_days: bookingDetails.recurringDays,
+                        recurring_start_date: bookingDetails.recurringStartDate,
+                        recurring_end_date: bookingDetails.recurringEndDate,
+                        recurring_horarios: bookingDetails.recurringHorarios
+                    };
+                } else {
+                    // Reserva única
+                    reservationData = {
+                        space: selectedSpace.id,
+                        date: selectedDate.date?.toISOString().split('T')[0] || '',
+                        start_time: timeRange.start,
+                        end_time: timeRange.end,
+                        description: bookingDetails.observacao,
+                        status: 'pending'
+                    };
+                }
+
+                console.log('Creating reservation:', reservationData);
+                const newReservation = await createReservation(reservationData);
+                console.log('Reservation created successfully:', newReservation);
+                
+                setReservations(prev => [...prev, newReservation]);
+                setHistorico(prev => [...prev, newReservation]);
+                
+                setAgendamentoStep('sucesso');
+                setAnimatingStep(null);
+            } catch (error: any) {
+                console.error('Error creating reservation:', error);
+                setError(error.message || 'Erro ao criar agendamento');
+                setAnimatingStep(null);
+            }
+        } else if (agendamentoStep === 'andar') {
+            if (!bookingDetails.isRecurring) {
+                setBookingDetails(prev => ({
+                    ...prev,
+                    data: selectedDate.date ? format(selectedDate.date, 'dd/MM/yyyy') : '',
+                    horario: {
+                        inicio: timeRange.start,
+                        fim: timeRange.end
+                    }
+                }));
+            } else {
+                setBookingDetails(prev => ({
+                    ...prev,
+                    data: `${format(new Date(bookingDetails.recurringStartDate), 'dd/MM/yyyy')} até ${format(new Date(bookingDetails.recurringEndDate), 'dd/MM/yyyy')}`,
+                    horario: {
+                        inicio: bookingDetails.recurringDays[0] ? bookingDetails.recurringHorarios[bookingDetails.recurringDays[0]].inicio : '',
+                        fim: bookingDetails.recurringDays[0] ? bookingDetails.recurringHorarios[bookingDetails.recurringDays[0]].fim : ''
+                    }
+                }));
+            }
+            
+            setAgendamentoStep('confirmacao');
+            setAnimatingStep(null);
+        } else {
+            const nextSteps: Record<AgendamentoStep, AgendamentoStep> = {
+                'campus': 'andar',
+                'andar': 'confirmacao',
+                'sala': 'confirmacao',
+                'confirmacao': 'resumo',
+                'resumo': 'sucesso',
+                'sucesso': 'campus'
+            };
+            
+            const next = nextSteps[agendamentoStep];
+            if (next) {
+                setError(null);
+                setAgendamentoStep(next);
+                setAnimatingStep(null);
+            }
+        }
+    }, 150);
+};
+
+  // Atualize a função handleBackStep
   const handleBackStep = () => {
-    if (agendamentoStep === 'resumo') {
-      setAgendamentoStep('confirmacao');
-    } else if (agendamentoStep === 'confirmacao') {
-      setAgendamentoStep('andar');
-    } else if (agendamentoStep === 'andar') {
-      setAgendamentoStep('campus');
-    }
+    setAnimatingStep(agendamentoStep);
+    
+    setTimeout(() => {
+        if (agendamentoStep === 'resumo') {
+            setAgendamentoStep('confirmacao');
+        } else if (agendamentoStep === 'confirmacao') {
+            setAgendamentoStep('andar');
+        } else if (agendamentoStep === 'andar') {
+            setAgendamentoStep('campus');
+        }
+        
+        setAnimatingStep(null);
+    }, 150);
   };
 
   const handlePrevMonth = () => {
@@ -533,7 +808,20 @@ export const Agendamento: React.FC = () => {
       horario: { inicio: '', fim: '' },
       curso: '',
       telefone: '',
-      observacao: ''
+      observacao: '',
+      isRecurring: false,
+      recurringDays: [],
+      recurringStartDate: '',
+      recurringEndDate: '',
+      recurringHorarios: {
+        seg: { inicio: '', fim: '' },
+        ter: { inicio: '', fim: '' },
+        qua: { inicio: '', fim: '' },
+        qui: { inicio: '', fim: '' },
+        sex: { inicio: '', fim: '' },
+        sab: { inicio: '', fim: '' },
+        dom: { inicio: '', fim: '' }
+      }
     });
   };
 
@@ -604,6 +892,67 @@ export const Agendamento: React.FC = () => {
     }
   }, [selectedValues.andar]);
 
+  // Adicione logs para debug
+  useEffect(() => {
+    const loadReservations = async () => {
+        try {
+            const data = await getUserReservations();
+            console.log('Raw reservation data:', data); // Debug log
+            
+            if (Array.isArray(data)) {
+                setReservations(data);
+                setHistorico(data);
+            } else {
+                console.error('Invalid data format:', data);
+                setReservations([]);
+                setHistorico([]);
+            }
+        } catch (error) {
+            console.error('Error loading reservations:', error);
+            setReservations([]);
+            setHistorico([]);
+        }
+    };
+
+    loadReservations();
+}, []);
+
+// Na linha 759, adicione verificação segura:
+{historico
+    .filter(res => res && res.id) // Filtra itens válidos
+    .sort((a, b) => {
+        try {
+            const dateA = new Date(a.date || 0);
+            const dateB = new Date(b.date || 0);
+            return dateB.getTime() - dateA.getTime();
+        } catch {
+            return 0;
+        }
+    })
+    .slice(0, mostrarTodoHistorico ? undefined : 2)
+    .map(reservation => {
+        if (!reservation || !reservation.id) return null;
+        
+        return (
+            <div key={reservation.id} className={`historico-card ${mapStatusToClassName(reservation.status)} ${!showNovoAgendamento ? 'full-width' : ''}`}>
+                <div className="historico-tags">
+                    <span className={`tag tag-status ${mapStatusToClassName(reservation.status)}`}>
+                        {getStatusText(reservation.status)}
+                    </span>
+                    {reservation.start_time && reservation.end_time && (
+                        <span className="tag tag-time">
+                            {`${reservation.start_time.slice(0,5)} - ${reservation.end_time.slice(0,5)}`}
+                        </span>
+                    )}
+                    {reservation.date && (
+                        <span className="tag tag-date">
+                            {new Date(reservation.date).toLocaleDateString()}
+                        </span>
+                    )}
+                </div>
+            </div>
+        );
+    })}
   return (
     <div className="agendamento-container">
       <header className="header">
@@ -646,45 +995,52 @@ export const Agendamento: React.FC = () => {
             <>
               <div className="agendamentos-list">
                 {reservations
-                  .filter(res => res.status !== 'canceled' && res.status !== 'completed')
-                  .slice(0, mostrarTodosAgendamentos ? undefined : 2)
-                  .map(reservation => (
-                    <div key={reservation.id} className={`agendamento-card ${!showNovoAgendamento ? 'full-width' : ''}`}>
-                      <div className="card-content">
-                        <div className="card-left">
-                          <div className="building-icon">
-                            <img src={Campusico} alt="Campus" className="campus-icon" />
-                            <span className="campus-name">{reservation.building_name}</span>
-                          </div>
-                        </div>
-                        <div className="card-right">
-                          <div className="local-details">
-                            <h3>{reservation.space_name}</h3>
-                          </div>
-                          <div className="agendamento-info">
-                            <p>{new Date(reservation.start_datetime).toLocaleDateString()}</p>
-                            <p>{`${new Date(reservation.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
-                                ${new Date(reservation.end_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}</p>
-                            <p>{`${reservation.capacity} pessoas`}</p>
-                          </div>
-                          <div className="header-buttons">
-                            <button className="edit-button" onClick={() => handleEdit(reservation)}>
-                              Editar
-                            </button>
-                            <button 
-                              className="cancel-button-small" 
-                              onClick={() => {
-                                setReservationToCancel(reservation.id);
-                                setShowCancelConfirmation(true);
-                              }}
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    .filter(res => res && res.id && res.status !== 'canceled' && res.status !== 'completed')
+                    .slice(0, mostrarTodosAgendamentos ? undefined : 2)
+                    .map(reservation => {
+                        if (!reservation) return null;
+                        
+                        const startTime = reservation.start_time ? reservation.start_time.slice(0, 5) : 'N/A';
+                        const endTime = reservation.end_time ? reservation.end_time.slice(0, 5) : 'N/A';
+                        const date = reservation.date ? new Date(reservation.date).toLocaleDateString() : 'N/A';
+                        
+                        return (
+                            <div key={reservation.id} className={`agendamento-card ${!showNovoAgendamento ? 'full-width' : ''}`}>
+                                <div className="card-content">
+                                    <div className="card-left">
+                                        <div className="building-icon">
+                                            <img src={Campusico} alt="Campus" className="campus-icon" />
+                                            <span className="campus-name">{reservation.building_name}</span>
+                                        </div>
+                                    </div>
+                                    <div className="card-right">
+                                        <div className="local-details">
+                                            <h3>{reservation.space_name}</h3>
+                                        </div>
+                                        <div className="agendamento-info">
+                                            <p>{date}</p>
+                                            <p>{`${startTime} - ${endTime}`}</p>
+                                            <p>{`${reservation.capacity} pessoas`}</p>
+                                        </div>
+                                        <div className="header-buttons">
+                                            <button className="edit-button" onClick={() => handleEdit(reservation)}>
+                                                Editar
+                                            </button>
+                                            <button 
+                                                className="cancel-button-small" 
+                                                onClick={() => {
+                                                    setReservationToCancel(reservation.id);
+                                                    setShowCancelConfirmation(true);
+                                                }}
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
               </div>
               {reservations.length > 2 && (
                 <button
@@ -702,37 +1058,51 @@ export const Agendamento: React.FC = () => {
           <h2>Histórico de agendamento</h2>
           <div className="historico-list">
             {historico
-              .sort((a, b) => new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime())
-              .slice(0, mostrarTodoHistorico ? undefined : 2)
-              .map(reservation => (
-                <div key={reservation.id} className={`historico-card ${mapStatusToClassName(reservation.status)} ${!showNovoAgendamento ? 'full-width' : ''}`}>
-                  <div className="historico-tags">
-                    <span className={`tag tag-status ${mapStatusToClassName(reservation.status)}`}>
-                      {getStatusText(reservation.status)}
-                    </span>
-                    <span className="tag tag-time">
-                      {`${new Date(reservation.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
-                       ${new Date(reservation.end_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}
-                    </span>
-                    <span className="tag tag-date">
-                      {new Date(reservation.start_datetime).toLocaleDateString()}
-                    </span>
-                    <span className="tag tag-people">
-                      {`${reservation.capacity} pessoas`}
-                    </span>
-                  </div>
-                  <div className="historico-location">
-                    <div className="location-row">
-                      <img src={Campusico} alt="Campus" className="location-icon" />
-                      <span className="location-name">{reservation.space_name}</span>
-                    </div>
-                    <div className="location-row">
-                      <img src={PingIcon} alt="Location" className="location-icon" />
-                      <span className="location-campus">{reservation.building_name}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                .filter(res => res && res.id) // Filtra itens válidos
+                .sort((a, b) => {
+                    try {
+                        const dateA = new Date(a.date || 0);
+                        const dateB = new Date(b.date || 0);
+                        return dateB.getTime() - dateA.getTime();
+                    } catch {
+                        return 0;
+                    }
+                })
+                .slice(0, mostrarTodoHistorico ? undefined : 2)
+                .map(reservation => {
+                    if (!reservation || !reservation.id) return null;
+                    
+                    // Proteção adicional para start_time e end_time
+                    const startTime = reservation.start_time ? reservation.start_time.slice(0, 5) : 'N/A';
+                    const endTime = reservation.end_time ? reservation.end_time.slice(0, 5) : 'N/A';
+                    const date = reservation.date ? new Date(reservation.date).toLocaleDateString() : 'N/A';
+                    
+                    return (
+                        <div key={reservation.id} className={`historico-card ${mapStatusToClassName(reservation.status)} ${!showNovoAgendamento ? 'full-width' : ''}`}>
+                            <div className="historico-tags">
+                                <span className={`tag tag-status ${mapStatusToClassName(reservation.status)}`}>
+                                    {getStatusText(reservation.status)}
+                                </span>
+                                <span className="tag tag-time">
+                                    {`${startTime} - ${endTime}`}
+                                </span>
+                                <span className="tag tag-date">
+                                    {date}
+                                </span>
+                            </div>
+                            <div className="historico-location">
+                                <div className="location-row">
+                                    <img src={Campusico} alt="Campus" className="location-icon" />
+                                    <span className="location-name">{reservation.space_name || 'Sala não definida'}</span>
+                                </div>
+                                <div className="location-row">
+                                    <img src={PingIcon} alt="Location" className="location-icon" />
+                                    <span className="location-campus">{reservation.building_name || 'Campus não definido'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
           </div>
           {historico.length > 2 && (
             <button
@@ -752,7 +1122,7 @@ export const Agendamento: React.FC = () => {
                 <div className="filtro">
                   <label>{stepContentsDynamic.campus.label}</label>
                   <select 
-                    value={selectedValues.campus} 
+                    value={selectedValues.campus}
                     onChange={(e) => setSelectedValues({
                       ...selectedValues,
                       campus: e.target.value,
@@ -787,314 +1157,472 @@ export const Agendamento: React.FC = () => {
             ) : agendamentoStep === 'andar' ? (
               <>
                 <div className="agendamento-details">
-                  <div className="select-row">
-                    <div className="select-group">
-                      <label>Andar</label>
-                      <select 
-                        value={selectedValues.andar}
-                        onChange={(e) => setSelectedValues({
-                          ...selectedValues,
-                          andar: e.target.value,
-                          sala: ''
-                        })}
+      <div className="select-row">
+        <div className="select-group">
+          <label>Andar</label>
+          <select 
+            value={selectedValues.andar}
+            onChange={(e) => setSelectedValues({
+              ...selectedValues,
+              andar: e.target.value,
+              sala: ''
+            })}
+          >
+            <option value="">Escolher Andar</option>
+            {floors.map(floor => (
+              <option key={floor.id} value={floor.name}>
+                {floor.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="select-group">
+          <label>Sala</label>
+          <select 
+            value={selectedValues.sala}
+            onChange={handleSpaceSelect}
+            disabled={!selectedValues.andar}
+          >
+            <option value="">Selecione uma sala</option>
+            {spaces.map((space) => (
+                <option key={space.id} value={space.id}>
+                    {space.name}
+                </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="form-group" style={{ marginBottom: '24px' }}>
+        <button
+          type="button"
+          className={`recurring-toggle ${bookingDetails.isRecurring ? 'active' : ''}`}
+          onClick={() => {
+            setBookingDetails({
+              ...bookingDetails,
+              isRecurring: !bookingDetails.isRecurring,
+              recurringDays: [],
+              recurringHorarios: {
+                seg: { inicio: '', fim: '' },
+                ter: { inicio: '', fim: '' },
+                qua: { inicio: '', fim: '' },
+                qui: { inicio: '', fim: '' },
+                sex: { inicio: '', fim: '' },
+                sab: { inicio: '', fim: '' },
+                dom: { inicio: '', fim: '' }
+              }
+            });
+            setTimeRange({ start: '', end: '' });
+            setSelectedDate({ date: null, isAvailable: true });
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={bookingDetails.isRecurring}
+            onChange={() => {}} // Controlado pelo onClick do button
+          />
+          Reserva Recorrente
+        </button>
+      </div>
+
+      {!bookingDetails.isRecurring ? (
+        <>
+          <div className="time-selection">
+            <label>Selecione o horário</label>
+            <div className="time-inputs">
+              <div className="time-group">
+                <label>Começo</label>
+                <input
+                  type="time"
+                  value={timeRange.start}
+                  onChange={(e) => setTimeRange({...timeRange, start: e.target.value})}
+                  min="07:00"
+                  max="22:00"
+                />
+              </div>
+              <div className="time-group">
+                <label>Término</label>
+                <input
+                  type="time"
+                  value={timeRange.end}
+                  onChange={(e) => setTimeRange({...timeRange, end: e.target.value})}
+                  min="07:00"
+                  max="22:00"
+                />
+              </div>
+            </div>
+          </div>
+
+          {selectedValues.sala && timeRange.start && timeRange.end && (
+            <div className="calendar-section">
+              <DatePicker
+                selected={selectedDate.date}
+                onChange={(date: Date | null) => {
+                  if (date) {
+                    handleDateSelect(date);
+                  }
+                }}
+                inline
+                locale={ptBR}
+                minDate={new Date()}
+                showMonthYearPicker={false}
+                monthsShown={1}
+                fixedHeight
+                openToDate={currentDate}
+                filterDate={(date) => {
+                  const dateStr = format(date, 'yyyy-MM-dd');
+                  const dayStatus = dayStatuses.find(d => d.date === dateStr);
+                  return dayStatus?.status !== 'ocupado' && dayStatus?.status !== 'ocupado-recorrente';
+                }}
+                dayClassName={(date) => {
+                  if (date < new Date()) {
+                    return 'ocupado';
+                  }
+                  return getDayClassName(date);
+                }}
+                renderCustomHeader={({ date }) => (
+                  <div className="calendar-header">
+                    <div className="month-navigation">
+                      <button 
+                        className="calendar-nav prev" 
+                        onClick={handlePrevMonth}
+                        disabled={isFirstMonth(currentDate)}
                       >
-                        <option value="">Escolher Andar</option>
-                        {floors.map(floor => (
-                          <option key={floor.id} value={floor.name}>
-                            {floor.name}
-                          </option>
-                        ))}
-                      </select>
+                        <img src={RightArrowIcon} alt="Mês anterior" className="back-icon" />
+                      </button>
+                      <span className="month-title">
+                        {format(date, 'MMMM yyyy', { locale: ptBR })}
+                        {loadingAvailability && ' (Carregando...)'}
+                      </span>
+                      <button className="calendar-nav next" onClick={handleNextMonth}>
+                        <img src={RightArrowIcon} alt="Próximo mês" className="arrow-icon" />
+                      </button>
                     </div>
-
-                    <div className="select-group">
-                      <label>Sala</label>
-                      <select 
-                        value={selectedValues.sala}
-                        onChange={(e) => setSelectedValues({
-                          ...selectedValues,
-                          sala: e.target.value
-                        })}
-                        disabled={!selectedValues.andar}
-                      >
-                        <option value="">Escolher Sala</option>
-                        {spaces.map(space => (
-                          <option key={space.id} value={space.name}>
-                            {extractRoomName(space.name)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="time-selection">
-                    <label>Selecione o horário</label>
-                    <div className="time-inputs">
-                      <div className="time-group">
-                        <label>Começo</label>
-                        <input
-                          type="time"
-                          value={timeRange.start}
-                          onChange={(e) => setTimeRange({...timeRange, start: e.target.value})}
-                          min="07:00"
-                          max="22:00"
-                        />
+                    <div className="calendar-legend">
+                      <div className="legend-item">
+                        <span className="legend-dot disponivel"></span>
+                        <span>Disponível</span>
                       </div>
-                      <div className="time-group">
-                        <label>Término</label>
-                        <input
-                          type="time"
-                          value={timeRange.end}
-                          onChange={(e) => setTimeRange({...timeRange, end: e.target.value})}
-                          min="07:00"
-                          max="22:00"
-                        />
+                      <div className="legend-item">
+                        <span className="legend-dot ocupado"></span>
+                        <span>Ocupado</span>
+                      </div>
+                      <div className="legend-item">
+                        <span className="legend-dot ocupado-recorrente"></span>
+                        <span>Ocupado Recorrente</span>
+                      </div>
+                      <div className="legend-item">
+                        <span className="legend-dot selecionado"></span>
+                        <span>Selecionado</span>
                       </div>
                     </div>
                   </div>
-
-                  {selectedValues.sala && timeRange.start && timeRange.end && (
-                    <div className="calendar-section">
-                      <DatePicker
-                        selected={selectedDate.date}
-                        onChange={(date: Date | null) => {
-                          if (date) {
-                            handleDateSelect(date);
-                          }
-                        }}
-                        onSelect={handleDateSelect}
-                        inline
-                        locale={ptBR}
-                        minDate={new Date()}
-                        showMonthYearPicker={false}
-                        monthsShown={1}
-                        fixedHeight
-                        openToDate={currentDate}
-                        filterDate={(date) => {
-                          const dateStr = format(date, 'yyyy-MM-dd');
-                          const dayStatus = dayStatuses.find(d => d.date === dateStr);
-                          // Retorna true apenas para datas disponíveis ou que ainda não foram verificadas
-                          return dayStatus?.status !== 'ocupado';
-                        }}
-                        dayClassName={(date) => {
-                          if (date < new Date()) {
-                            return 'ocupado';
-                          }
-                          return getDayClassName(date);
-                        }}
-                        renderCustomHeader={({ date }) => (
-                          <div className="calendar-header">
-                            <div className="month-navigation">
-                              <button 
-                                className="calendar-nav prev" 
-                                onClick={handlePrevMonth}
-                                disabled={isFirstMonth(currentDate)}
-                              >
-                                <img src={RightArrowIcon} alt="Mês anterior" className="back-icon" />
-                              </button>
-                              <span className="month-title">
-                                {format(date, 'MMMM yyyy', { locale: ptBR })}
-                                {loadingAvailability && ' (Carregando...)'}
-                              </span>
-                              <button className="calendar-nav next" onClick={handleNextMonth}>
-                                <img src={RightArrowIcon} alt="Próximo mês" className="arrow-icon" />
-                              </button>
-                            </div>
-                            <div className="calendar-legend">
-                              <div className="legend-item">
-                                <span className="legend-dot disponivel"></span>
-                                <span>Disponível</span>
-                              </div>
-                              <div className="legend-item">
-                                <span className="legend-dot ocupado"></span>
-                                <span>Ocupado</span>
-                              </div>
-                              <div className="legend-item">
-                                <span className="legend-dot selecionado"></span>
-                                <span>Selecionado</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="action-buttons">
-                  <button 
-                    className="back-button" 
-                    onClick={handleBackStep}
-                    disabled={agendamentoStep === 'campus' as AgendamentoStep}
-                  >
-                    <img src={RightArrowIcon} alt="Voltar" className="back-icon" />
-                  </button>
-                  <button 
-                    className="search-button" 
-                    onClick={handleNextStep}
-                    disabled={!canProceedToNext()}
-                  >
-                    <img src={RightArrowIcon} alt="Próximo" className="arrow-icon" />
-                  </button>
-                </div>
-              </>
-            ) : agendamentoStep === 'confirmacao' ? (
-              <div className="confirmacao-agendamento">
-                <div className="selected-details">
-                  <div className="detail-chip-location">
-                    <img src={Campusico} alt="Campus" />
-                    <span>{bookingDetails.campus}</span>
-                  </div>
-                  <div className="detail-chip-location">
-                    <img src={PingIcon} alt="Location" />
-                    <span>{bookingDetails.sala}</span>
-                  </div>
-                  <div className="detail-chip-time">
-                    <img src={Calendario} alt="Data" />
-                    <span>{bookingDetails.data}</span>
-                  </div>
-                  <div className="detail-chip-time">
-                    <img src={Relogio} alt="Horário" />
-                    <span>{`${bookingDetails.horario.inicio} às ${bookingDetails.horario.fim}`}</span>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Insira o curso</label>
-                  <div className="input-with-icon">
-                    <img src={ChapeuIcon} alt="Curso" className="input-icon" />
-                    <input
-                      type="text"
-                      placeholder="Curso"
-                      value={bookingDetails.curso}
-                      onChange={(e) => setBookingDetails({
+                )}
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="recurring-section">
+          <div className="form-group">
+            <label style={{ marginBottom: '16px' }}>Selecione os dias da semana</label>
+            <div className="days-selector">
+              {['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].map((day, index) => (
+                <label key={day} className="day-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={bookingDetails.recurringDays.includes(day)}
+                    onChange={(e) => {
+                      const newDays = e.target.checked
+                        ? [...bookingDetails.recurringDays, day]
+                        : bookingDetails.recurringDays.filter(d => d !== day);
+                      setBookingDetails({
                         ...bookingDetails,
-                        curso: e.target.value
-                      })}
-                    />
-                  </div>
-                </div>
+                        recurringDays: newDays
+                      });
+                    }}
+                  />
+                  <span>{['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][index]}</span>
+                </label>
+              ))}
 
-                <div className="form-group">
-                  <label>Telefone para contato</label>
-                  <div className="input-with-icon">
-                    <img src={TelefoneIcon} alt="Telefone" className="input-icon" />
-                    <input
-                      type="tel"
-                      placeholder="Contato"
-                      value={bookingDetails.telefone}
-                      onChange={(e) => setBookingDetails({
-                        ...bookingDetails,
-                        telefone: e.target.value
-                      })}
-                    />
-                  </div>
-                </div>
+              {/* Adicionando margens para os checkboxes */}
+              <style>
+                {`
+                  .days-selector {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                  }
+                `}
+              </style>
+            </div>
+          </div>
 
-                <div className="form-group">
-                  <label>Observações da reserva (Opcional)</label>
-                  <div className="input-with-icon">
-                    <img src={MensagemIcon} alt="Observação" className="input-icon" />
-                    <textarea
-                      placeholder="Observação"
-                      value={bookingDetails.observacao}
-                      onChange={(e) => setBookingDetails({
-                        ...bookingDetails,
-                        observacao: e.target.value
-                      })}
-                    />
-                  </div>
+          {bookingDetails.recurringDays.map(day => (
+            <div key={day} className="form-group">
+              <label>Horário para {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].indexOf(day)]}</label>
+              <div className="time-inputs">
+                <div className="time-group">
+                  <label>Começo</label>
+                  <input
+                    type="time"
+                    value={bookingDetails.recurringHorarios[day].inicio}
+                    onChange={(e) => setBookingDetails({
+                      ...bookingDetails,
+                      recurringHorarios: {
+                        ...bookingDetails.recurringHorarios,
+                        [day]: { ...bookingDetails.recurringHorarios[day], inicio: e.target.value }
+                      }
+                    })}
+                    min="07:00"
+                    max="22:00"
+                  />
                 </div>
-
-                <div className="action-buttons">
-                  <button className="back-button" onClick={handleBackStep}>
-                    <img src={RightArrowIcon} alt="Voltar" className="back-icon" />
-                  </button>
-                  <button 
-                    className="search-button" 
-                    onClick={handleNextStep}
-                    disabled={!bookingDetails.curso || !bookingDetails.telefone}
-                  >
-                    <img src={RightArrowIcon} alt="Próximo" className="arrow-icon" />
-                  </button>
+                <div className="time-group">
+                  <label>Término</label>
+                  <input
+                    type="time"
+                    value={bookingDetails.recurringHorarios[day].fim}
+                    onChange={(e) => setBookingDetails({
+                      ...bookingDetails,
+                      recurringHorarios: {
+                        ...bookingDetails.recurringHorarios,
+                        [day]: { ...bookingDetails.recurringHorarios[day], fim: e.target.value }
+                      }
+                    })}
+                    min="07:00"
+                    max="22:00"
+                  />
                 </div>
               </div>
-            ) : agendamentoStep === 'resumo' ? (
-              <div className="resumo-agendamento">
-                <h2>Resumo</h2>
-                
-                <div className="resumo-content">
-                  <div className="resumo-group">
-                    <div className="resumo-item">
-                      <span className="label">Campus:</span>
-                      <span className="value">{bookingDetails.campus}</span>
-                    </div>
-                    <div className="resumo-item">
-                      <span className="label">Sala:</span>
-                      <span className="value">{extractRoomName(bookingDetails.sala)}</span>
-                    </div>
-                  </div>
+            </div>
+          ))}
 
-                  <div className="resumo-group">
-                    <div className="resumo-item">
-                      <span className="label-2">Data:</span>
-                      <span className="value">{bookingDetails.data}</span>
-                    </div>
-                    <div className="resumo-item">
-                      <span className="label-2">Horário:</span>
-                      <span className="value">{`${bookingDetails.horario.inicio} às ${bookingDetails.horario.fim}`}</span>
-                    </div>
-                  </div>
+          <div className="form-group">
+            <label>Data de Início</label>
+            <input
+              type="date"
+              value={bookingDetails.recurringStartDate}
+              onChange={(e) => setBookingDetails({
+                ...bookingDetails,
+                recurringStartDate: e.target.value
+              })}
+            />
+          </div>
 
-                  <div className="resumo-group">
-                    <div className="resumo-item">
-                      <span className="label-2">Curso:</span>
-                      <span className="value">{bookingDetails.curso}</span>
-                    </div>
-                    <div className="resumo-item">
-                      <span className="label-2">Contato:</span>
-                      <span className="value">{bookingDetails.telefone}</span>
-                    </div>
-                  </div>
+          <div className="form-group">
+            <label>Data de Término</label>
+            <input
+              type="date"
+              value={bookingDetails.recurringEndDate}
+              onChange={(e) => setBookingDetails({
+                ...bookingDetails,
+                recurringEndDate: e.target.value
+              })}
+            />
+          </div>
+        </div>
+      )}
+    </div>
 
-                  {bookingDetails.observacao && (
-                    <div className="resumo-group">
-                      <div className="resumo-item">
-                        <span className="label-2">Obs:</span>
-                        <span className="value">{bookingDetails.observacao}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
+    <div className="action-buttons">
+      <button 
+        className="back-button" 
+        onClick={handleBackStep}
+        disabled={agendamentoStep === 'campus' as AgendamentoStep}
+      >
+        <img src={RightArrowIcon} alt="Voltar" className="back-icon" />
+      </button>
+      <button 
+        className="search-button" 
+        onClick={handleNextStep}
+        disabled={
+          !selectedValues.andar || !selectedValues.sala ||
+          (bookingDetails.isRecurring
+            ? (bookingDetails.recurringDays.length === 0 || 
+               !bookingDetails.recurringStartDate || 
+               !bookingDetails.recurringEndDate ||
+               bookingDetails.recurringDays.some(day => 
+                 !bookingDetails.recurringHorarios[day].inicio || 
+                 !bookingDetails.recurringHorarios[day].fim
+               ))
+            : (!timeRange.start || !timeRange.end || !selectedDate.date))
+        }
+      >
+        <img src={RightArrowIcon} alt="Próximo" className="arrow-icon" />
+      </button>
+    </div>
+  </>
+) : agendamentoStep === 'confirmacao' ? (
+  <div className={`confirmacao-agendamento ${animatingStep === 'confirmacao' ? 'animating-out' : ''} ${animatingStep === 'resumo' ? 'animating-backward' : ''}`}>
+    <div className="selected-details">
+      <div className="detail-chip-location">
+        <img src={Campusico} alt="Campus" />
+        <span>{selectedValues.campus || 'Campus não selecionado'}</span>
+      </div>
+      <div className="detail-chip-location">
+        <img src={PingIcon} alt="Location" />
+        <span>{
+          selectedValues.sala 
+            ? spaces.find(s => s.id.toString() === selectedValues.sala)?.name || 'Sala não selecionada'
+            : 'Sala não selecionada'
+        }</span>
+      </div>
+      <div className="detail-chip-time">
+        <img src={Calendario} alt="Data" />
+        <span>{bookingDetails.data || (bookingDetails.isRecurring ? 'Recorrente' : 'Não selecionado')}</span>
+      </div>
+      <div className="detail-chip-time">
+        <img src={Relogio} alt="Horário" />
+        <span>{`${bookingDetails.horario.inicio} às ${bookingDetails.horario.fim}`}</span>
+      </div>
+    </div>
 
-                <div className="action-buttons">
-                  <button className="back-button" onClick={handleBackStep}>
-                    <img src={RightArrowIcon} alt="Voltar" className="back-icon" />
-                  </button>
-                  <button className="confirm-button" onClick={handleNextStep}>
-                    <img src={CheckIcon} alt="Confirmar" />
-                    <span>Confirmar</span>
-                  </button>
-                </div>
-              </div>
-            ) : agendamentoStep === 'sucesso' ? (
-              <div className="sucesso-agendamento">
-                <h3>Tudo pronto!</h3>
-                
-                <div className="sucesso-content">
-                  <img src={BigCheckIcon} alt="Sucesso" className="big-check-icon" />
-                  <p className="sucesso-message">Seu pedido de agendamento será analisado!</p>
-                  <p className="sucesso-submessage">Mandaremos uma mensagem para te avisar da sua reserva</p>
-                </div>
+    <div className="form-group">
+      <label>Insira o curso</label>
+      <div className="input-with-icon">
+        <img src={ChapeuIcon} alt="Curso" className="input-icon" />
+        <input
+          type="text"
+          placeholder="Curso"
+          value={bookingDetails.curso}
+          onChange={(e) => setBookingDetails({
+            ...bookingDetails,
+            curso: e.target.value
+          })}
+        />
+      </div>
+    </div>
 
-                <button 
-                  className="conclude-button"
-                  onClick={resetAgendamento}
-                >
-                  Concluir
-                </button>
-              </div>
-            ) : null}
+    <div className="form-group">
+      <label>Telefone para contato</label>
+      <div className="input-with-icon">
+        <img src={TelefoneIcon} alt="Telefone" className="input-icon" />
+        <input
+          type="tel"
+          placeholder="(XX) XXXXX-XXXX"
+          value={bookingDetails.telefone}
+          onChange={(e) => setBookingDetails({
+            ...bookingDetails,
+            telefone: validatePhoneInput(e.target.value)
+          })}
+          maxLength={20}
+        />
+      </div>
+    </div>
+
+    <div className="form-group">
+      <label>Observações da reserva (Opcional)</label>
+      <div className="input-with-icon">
+        <img src={MensagemIcon} alt="Observação" className="input-icon" />
+        <textarea
+          placeholder="Observação"
+          value={bookingDetails.observacao}
+          onChange={(e) => setBookingDetails({
+            ...bookingDetails,
+            observacao: e.target.value
+          })}
+        />
+      </div>
+    </div>
+
+    <div className="action-buttons">
+      <button className="back-button" onClick={handleBackStep}>
+        <img src={RightArrowIcon} alt="Voltar" className="back-icon" />
+      </button>
+      <button 
+        className="search-button" 
+        onClick={handleNextStep}
+        disabled={!bookingDetails.curso || !bookingDetails.telefone}
+      >
+        <img src={RightArrowIcon} alt="Próximo" className="arrow-icon" />
+      </button>
+    </div>
+  </div>
+) : agendamentoStep === 'resumo' ? (
+  <div className={`resumo-agendamento ${animatingStep === 'resumo' ? 'animating-out' : ''} ${animatingStep === 'confirmacao' ? 'animating-backward' : ''}`}>
+    <h2>Resumo</h2>
+    
+    <div className="resumo-content">
+      <div className="resumo-group">
+        <div className="resumo-item">
+          <span className="label">Campus:</span>
+          <span className="value">{selectedValues.campus || 'Não selecionado'}</span>
+        </div>
+        <div className="resumo-item">
+          <span className="label">Sala:</span>
+          <span className="value">{
+            selectedValues.sala 
+              ? spaces.find(s => s.id.toString() === selectedValues.sala)?.name || 'Sala não selecionada'
+              : 'Sala não selecionada'
+          }</span>
+        </div>
+      </div>
+
+      <div className="resumo-group">
+        <div className="resumo-item">
+          <span className="label-2">Data:</span>
+          <span className="value">{bookingDetails.data}</span>
+        </div>
+        <div className="resumo-item">
+          <span className="label-2">Horário:</span>
+          <span className="value">{`${bookingDetails.horario.inicio} às ${bookingDetails.horario.fim}`}</span>
+        </div>
+      </div>
+
+      <div className="resumo-group">
+        <div className="resumo-item">
+          <span className="label-2">Curso:</span>
+          <span className="value">{bookingDetails.curso}</span>
+        </div>
+        <div className="resumo-item">
+          <span className="label-2">Contato:</span>
+          <span className="value">{bookingDetails.telefone}</span>
+        </div>
+      </div>
+
+      {bookingDetails.observacao && (
+        <div className="resumo-group">
+          <div className="resumo-item">
+            <span className="label-2">Obs:</span>
+            <span className="value">{bookingDetails.observacao}</span>
+          </div>
+        </div>
+      )}
+    </div>
+
+    <div className="action-buttons">
+      <button className="back-button" onClick={handleBackStep}>
+        <img src={RightArrowIcon} alt="Voltar" className="back-icon" />
+      </button>
+      <button className="confirm-button" onClick={handleNextStep}>
+        <img src={CheckIcon} alt="Confirmar" />
+        <span>Confirmar</span>
+      </button>
+    </div>
+  </div>
+) : agendamentoStep === 'sucesso' ? (
+  <div className={`novo-agendamento sucesso-agendamento ${animatingStep === 'sucesso' ? 'animating-out' : ''}`}>
+    <div className="sucesso-content">
+      <div className="big-check-icon">✓</div>
+      <h2>Agendamento Pendente!</h2>
+      <p className="sucesso-message">
+        Seu pedido de agendamento será analisado!
+      </p>
+      <p className="sucesso-submessage">
+        Mandaremos uma mensagem para <a href="#">avisar da sua reserva</a>
+      </p>
+    </div>
+
+    <div className="action-buttons">
+      <button className="conclude-button" onClick={resetAgendamento}>
+        <span>Concluir</span>
+      </button>
+    </div>
+  </div>
+) : null}
           </section>
         )}
         

@@ -1,8 +1,458 @@
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Novo Agendamento com animação */
+.novo-agendamento {
+  background-color: #0069AD;
+  border-radius: 10px;
+  padding: 4%;
+  margin-top: 8%;
+  position: relative;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.novo-agendamento.animating-out {
+  animation: slideOutRight 0.3s ease-out forwards;
+}
+
+/* Conteúdo interno com fade */
+.novo-agendamento > * {
+  animation: fadeIn 0.4s ease-out 0.1s both;
+}
+
+.novo-agendamento.animating-out > * {
+  animation: fadeOut 0.2s ease-out forwards;
+}
+
+/* Estilos para "Reserva Recorrente" - Hover diferente de ativo */
+.recurring-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: 44px;
+  border-radius: 10px;
+  background: transparent;
+  border: 2px solid #FFFFFF;
+  color: #FFFFFF;
+  cursor: pointer;
+  padding: 8px 24px;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin: 0;
+}
+
+/* Hover - mantém letras brancas, fundo fica amarelo */
+.recurring-toggle:hover:not(.active) {
+  background-color: rgba(248, 196, 0, 0.3);
+  border-color: #F8C400;
+  color: #FFFFFF;
+}
+
+/* Ativo/Clicado - letras pretas, fundo amarelo */
+.recurring-toggle.active,
+.recurring-toggle:checked {
+  background-color: #F8C400;
+  border-color: #F8C400;
+  color: #000000;
+  font-weight: 600;
+}
+
+/* Hover quando já está ativo - mantém estado */
+.recurring-toggle.active:hover {
+  background-color: #F8C400;
+  border-color: #F8C400;
+  color: #000000;
+}
+
+.recurring-toggle input[type="checkbox"] {
+  display: none;
+}
+
+/* Seção de sucesso com ícone maior */
+.sucesso-agendamento {
+  background-color: #0069AD;
+  border-radius: 10px;
+  padding: 24px;
+  color: #FFFFFF;
+  position: relative;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.sucesso-agendamento h2 {
+  color: #FFD700;
+  font-size: 28px;
+  margin-bottom: 24px;
+  font-weight: 800;
+}
+
+.sucesso-agendamento h3 {
+  color: #FFFFFF;
+  font-size: 32px;
+  margin-bottom: 32px;
+}
+
+.sucesso-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  margin-top: 48px;
+}
+
+.big-check-icon {
+  width: 160px;
+  height: 160px;
+  margin-bottom: 32px;
+  animation: fadeIn 0.5s ease-out 0.2s both;
+}
+
+.sucesso-message {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.sucesso-submessage {
+  font-size: 14px;
+  opacity: 0.9;
+  color: #fff;
+  font-weight: 400;
+  margin: 0 0 8%;
+}
+
+/* Botão Concluir com estilo atualizado */
+.conclude-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #F8C400;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  min-height: 44px;
+  min-width: 120px;
+}
+
+.conclude-button img {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) saturate(100%) invert(100%);
+}
+
+.conclude-button span {
+  color: #FFFFFF;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.conclude-button:hover {
+  background: #FFE74C;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(248, 196, 0, 0.3);
+}
+
+.conclude-button:hover span {
+  color: #000000;
+}
+
+.conclude-button:hover img {
+  filter: brightness(0) saturate(100%) invert(0%);
+}
+
+.conclude-button:active {
+  transform: translateY(0);
+}
+
+/* Animações para as abas de confirmação e resumo */
+.confirmacao-agendamento {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  background: #0069AD;
+  border-radius: 8px;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.confirmacao-agendamento.animating-out {
+  animation: slideOutRight 0.3s ease-out forwards;
+}
+
+.resumo-agendamento {
+  background-color: #0069AD;
+  border-radius: 10px;
+  padding: 0% 12% 8%;
+  color: #FFFFFF;
+  position: relative;
+  min-height: 400px;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.resumo-agendamento.animating-out {
+  animation: slideOutRight 0.3s ease-out forwards;
+}
+
+/* Animações para direção backwards */
+.novo-agendamento.animating-backward {
+  animation: slideOutLeft 0.3s ease-out forwards;
+}
+
+.confirmacao-agendamento.animating-backward {
+  animation: slideOutLeft 0.3s ease-out forwards;
+}
+
+.resumo-agendamento.animating-backward {
+  animation: slideOutLeft 0.3s ease-out forwards;
+}
+
+/* Ingredientes internos animam ao aparecer */
+.agendamento-details > * {
+  animation: fadeIn 0.4s ease-out 0.1s both;
+}
+
+.selected-details {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.resumo-content {
+  animation: slideInRight 0.35s ease-out 0.05s both;
+}
+
+/* Corrigir visibilidade de Campus e Sala */
+.selected-details .detail-chip-location span,
+.selected-details .detail-chip-time span,
+.resumo-item .value {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+/* Garantir que os dados apareçam */
+.detail-chip-location,
+.detail-chip-time {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.detail-chip-location span,
+.detail-chip-time span {
+  flex: 1;
+}
+
+/* Estilos para dias da semana */
+.days-selector {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+.day-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 12px 8px;
+  border: 2px solid #FFFFFF;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-size: large;
+  font-weight: 600;
+  color: #FFFFFF;
+  background-color: transparent;
+  min-width: 24px;
+}
+
+.day-checkbox input[type="checkbox"] {
+  display: none;
+}
+
+.day-checkbox span {
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.day-checkbox input[type="checkbox"]:checked ~ span {
+  color: #000000;
+  font-weight: 600;
+}
+
+.day-checkbox:has(input[type="checkbox"]:checked) {
+  border-color: #F8C400;
+  background-color: #F8C400;
+}
+
+.day-checkbox:has(input[type="checkbox"]:checked) span {
+  color: #000000;
+}
+
+/* Hover effect - amarelo aos poucos */
+.day-checkbox:hover {
+  background-color: #F8C400;
+  border-color: #F8C400;
+  color: #000000;
+  transition: all 0.3s ease;
+}
+
+.day-checkbox:hover span {
+  color: #000000;
+}
+
+.day-checkbox:has(input[type="checkbox"]:checked):hover {
+  border-color: #F8C400;
+  background-color: #F8C400;
+}
+
+/* Ocupado Recorrente - Lilás */
+.react-datepicker__day.ocupado-recorrente {
+  background-color: #E8D5F2 !important;
+  color: #6B46C1 !important;
+  border-radius: 50% !important;
+  font-weight: 500 !important;
+}
+
+.react-datepicker__day.ocupado-recorrente:hover {
+  background-color: #E8D5F2 !important;
+  color: #6B46C1 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+.legend-dot.ocupado-recorrente {
+  background-color: #E8D5F2;
+  border: 2px solid #6B46C1;
+}
+
+/* Campo de telefone com máscara visual */
+.form-group input[type="tel"],
+.input-with-icon input[type="tel"] {
+  width: 100% !important;
+  padding: 12px 12px 12px 40px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  background: #FFFFFF !important;
+  font-size: 14px !important;
+  color: #333 !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+  letter-spacing: 0px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+}
+
+.form-group input[type="tel"]::placeholder,
+.input-with-icon input[type="tel"]::placeholder {
+  color: #999 !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+}
+
+/* Garantir que todos os inputs tenham o mesmo tamanho */
+.form-group input[type="text"],
+.form-group input[type="tel"],
+.input-with-icon input[type="text"],
+.input-with-icon input[type="tel"] {
+  height: 44px !important;
+  line-height: 44px !important;
+  font-size: 14px !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+  padding: 12px 12px 12px 40px !important;
+}
+
+/* Textarea com altura consistente */
+.form-group textarea,
+.input-with-icon textarea {
+  font-family: 'Nunito Sans', sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  padding: 12px 12px 12px 40px !important;
+  min-height: 88px !important;
+}
+
 .agendamento-container {
   width: 402px;
   min-height: 100vh;
   background-color: #F5F5F5;
-  margin: 0 auto; /* Center everything */
+  margin: 0 auto;
 }
 
 .header {
@@ -974,9 +1424,9 @@ p {
 
 .time-group input[type="time"] {
   height: 44px;
-  width: 150px;
+  width: 200px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 12px;
   border: none;
   background: #FFFFFF;
   font-size: 14px;
@@ -1162,13 +1612,18 @@ p {
 }
 
 .form-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: #FFFFFF;
- 
+  font-size: large;
+  font-weight: 500;
+  margin: 0;
 }
 
 .form-group input,
 .form-group textarea {
-  width: 100%;
+  width: 90%;
   padding: 12px;
   border-radius: 8px;
   border: none;
@@ -1564,9 +2019,6 @@ p {
   color: #000 !important;
   display: inline-block !important;
   width: 1.7rem !important;
-  line-height: 1.7rem !important;
-  text-align: center !important;
-  margin: 0.186rem 0.35rem 0.166rem 0.114rem !important;
 }
 
 /* Estilos para dias disponíveis/ocupados */
@@ -1747,12 +2199,14 @@ p {
 
 /* Media query para desktop */
 @media screen and (min-width: 1024px) {
-  .agendamento-container {
+   .agendamento-container {
     width: 100%;
     max-width: 100%;
-    margin: 0 auto;
-    height: 100%;
-    position: relative;
+    background-color: #F5F5F5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
   }
   
   .header {
@@ -1882,18 +2336,45 @@ p {
     right: 0;
     top: 0;
     width: 28.3%; /* 362px / 1280px */
-    min-height: 530px;
-    height: auto; /* Permite crescer conforme necessário */
+    max-height: none; /* Remove o max-height */
+    height: auto;
     margin-top: 4%;
     border-radius: 10px;
     display: flex;
     flex-direction: column;
+    overflow-y: visible; /* Muda de auto para visible */
+    overflow-x: hidden;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  /* Seções internas do novo-agendamento */
+  .novo-agendamento .filtro,
+  .novo-agendamento .agendamento-details,
+  .novo-agendamento .confirmacao-agendamento,
+  .novo-agendamento .resumo-agendamento,
+  .novo-agendamento .sucesso-agendamento {
+    flex-shrink: 0;
+  }
+
+   /* Garante que o calendário não ultrapasse */
+  .novo-agendamento .calendar-section {
+    max-height: none;
+    overflow-y: auto;
   }
 
   /* Search button no desktop */
   .search-button {
     width: 52px;
     height: 52px;
+  }
+  /* Botões de ação sempre no final */
+  .novo-agendamento .action-buttons {
+    position: relative; /* Muda de sticky para relative */
+    bottom: auto;
+    background-color: transparent;
+    padding: 12px 0;
+    margin: 12px 0;
   }
 
   /* Logout no desktop */
@@ -1988,10 +2469,13 @@ p {
   }
 
   /* Ajuste responsivo para o novo-agendamento */
-  .novo-agendamento {
+   .novo-agendamento {
     width: 28.3%;
-    min-width: 320px; /* Largura mínima para manter legibilidade */
-    max-width: 362px; /* Largura máxima original */
+    min-width: 320px;
+    max-width: 560px;
+    height: auto;
+    display: flex;
+    flex-direction: column;
   }
 
   /* Ajuste de espaçamento interno para manter proporções */
@@ -2157,4 +2641,176 @@ p {
     width: 100% !important;
     padding: 0 !important; /* Remove padding */
   }
+}
+
+/* Estilos para "Reserva Recorrente" como botão */
+.recurring-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: 44px;
+  border-radius: 10px;
+  background: transparent;
+  border: 2px solid #FFFFFF;
+  color: #FFFFFF;
+  cursor: pointer;
+  padding: 8px 24px;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recurring-toggle:hover {
+  background-color: #F8C400;
+  border-color: #F8C400;
+  color: #000000;
+}
+
+.recurring-toggle:checked,
+.recurring-toggle.active {
+  background-color: #F8C400;
+  border-color: #F8C400;
+  color: #000000;
+  font-weight: 600;
+}
+
+/* Esconder o checkbox real */
+.recurring-toggle input[type="checkbox"] {
+  display: none;
+}
+
+/* Estilos para seletor de dias da semana */
+.days-selector {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+.day-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 12px 8px;
+  border: 2px solid #FFFFFF;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-size: large;
+  font-weight: 600;
+  color: #FFFFFF;
+  background-color: transparent;
+  min-width: 24px;
+}
+
+.day-checkbox input[type="checkbox"] {
+  display: none;
+}
+
+.day-checkbox span {
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.day-checkbox input[type="checkbox"]:checked ~ span {
+  color: #000000;
+  font-weight: 600;
+}
+
+.day-checkbox:has(input[type="checkbox"]:checked) {
+  border-color: #F8C400;
+  background-color: #F8C400;
+}
+
+.day-checkbox:has(input[type="checkbox"]:checked) span {
+  color: #000000;
+}
+
+/* Hover effect - amarelo aos poucos */
+.day-checkbox:hover {
+  background-color: #F8C400;
+  border-color: #F8C400;
+  color: #000000;
+  transition: all 0.3s ease;
+}
+
+.day-checkbox:hover span {
+  color: #000000;
+}
+
+.day-checkbox:has(input[type="checkbox"]:checked):hover {
+  border-color: #F8C400;
+  background-color: #F8C400;
+}
+
+/* Ocupado Recorrente - Lilás */
+.react-datepicker__day.ocupado-recorrente {
+  background-color: #E8D5F2 !important;
+  color: #6B46C1 !important;
+  border-radius: 50% !important;
+  font-weight: 500 !important;
+}
+
+.react-datepicker__day.ocupado-recorrente:hover {
+  background-color: #E8D5F2 !important;
+  color: #6B46C1 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+.legend-dot.ocupado-recorrente {
+  background-color: #E8D5F2;
+  border: 2px solid #6B46C1;
+}
+
+/* Campo de telefone com máscara visual */
+.form-group input[type="tel"],
+.input-with-icon input[type="tel"] {
+  width: 80% !important;
+  padding: 12px 12px 12px 40px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  background: #FFFFFF !important;
+  font-size: 14px !important;
+  color: #333 !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+  letter-spacing: 0px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+}
+
+.form-group input[type="tel"]::placeholder,
+.input-with-icon input[type="tel"]::placeholder {
+  color: #999 !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+}
+
+/* Garantir que todos os inputs tenham o mesmo tamanho */
+.form-group input[type="text"],
+.form-group input[type="tel"],
+.input-with-icon input[type="text"],
+.input-with-icon input[type="tel"] {
+  height: 44px !important;
+  line-height: 44px !important;
+  font-size: 14px !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+  padding: 12px 12px 12px 40px !important;
+}
+
+/* Textarea com altura consistente */
+.form-group textarea,
+.input-with-icon textarea {
+  font-family: 'Nunito Sans', sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  padding: 12px 12px 12px 40px !important;
+  min-height: 88px !important;
 }

@@ -1,49 +1,43 @@
 django.jQuery(document).ready(function($) {
-    console.log('Reservation admin JS loaded'); // Debug line
+    console.log('Reservation admin JS loaded');
 
     const isRecurring = $('#id_is_recurring');
-    const singleFields = $('.field-date, .field-start_time, .field-end_time');
-    const recurringFields = $('.field-recurring_days, .field-recurring_start_date, .field-recurring_end_date');
+    
     const dayFields = {
-        '0': $('.field-monday_start, .field-monday_end'),
-        '1': $('.field-tuesday_start, .field-tuesday_end'),
-        '2': $('.field-wednesday_start, .field-wednesday_end'),
-        '3': $('.field-thursday_start, .field-thursday_end'),
-        '4': $('.field-friday_start, .field-friday_end'),
-        '5': $('.field-saturday_start, .field-saturday_end'),
-        '6': $('.field-sunday_start, .field-sunday_end')
+        'seg': { start: '#id_monday_start', end: '#id_monday_end', label: 'Segunda-feira' },
+        'ter': { start: '#id_tuesday_start', end: '#id_tuesday_end', label: 'Terça-feira' },
+        'qua': { start: '#id_wednesday_start', end: '#id_wednesday_end', label: 'Quarta-feira' },
+        'qui': { start: '#id_thursday_start', end: '#id_thursday_end', label: 'Quinta-feira' },
+        'sex': { start: '#id_friday_start', end: '#id_friday_end', label: 'Sexta-feira' },
+        'sab': { start: '#id_saturday_start', end: '#id_saturday_end', label: 'Sábado' },
+        'dom': { start: '#id_sunday_start', end: '#id_sunday_end', label: 'Domingo' }
     };
 
-    // Esconde todos os campos de horário inicialmente
-    Object.values(dayFields).forEach(fields => fields.hide());
+    function hideAllDayFields() {
+        Object.values(dayFields).forEach(field => {
+            $(field.start).closest('.fieldWrapper').hide();
+            $(field.end).closest('.fieldWrapper').hide();
+        });
+    }
 
     function toggleRecurringFields() {
         if (isRecurring.is(':checked')) {
-            singleFields.hide();
-            recurringFields.show();
-            updateDayFields();
+            // Esconde os checkboxes de dias da semana
+            $('#id_recurring_days').closest('.fieldWrapper').hide();
+            
+            // Esconde todos os campos de horário
+            hideAllDayFields();
         } else {
-            singleFields.show();
-            recurringFields.hide();
-            Object.values(dayFields).forEach(fields => fields.hide());
+            hideAllDayFields();
         }
-    }
-
-    function updateDayFields() {
-        // Esconde todos os campos primeiro
-        Object.values(dayFields).forEach(fields => fields.hide());
-        
-        // Mostra apenas os campos dos dias selecionados
-        $('#id_recurring_days input:checked').each(function() {
-            const day = $(this).val();
-            dayFields[day].show();
-        });
     }
 
     // Event listeners
     isRecurring.on('change', toggleRecurringFields);
-    $('#id_recurring_days input').on('change', updateDayFields);
     
     // Setup inicial
-    toggleRecurringFields();
+    setTimeout(() => {
+        console.log('Setup inicial');
+        toggleRecurringFields();
+    }, 100);
 });

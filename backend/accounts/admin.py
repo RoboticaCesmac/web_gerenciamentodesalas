@@ -25,3 +25,24 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('username', 'email', 'password1', 'password2'),
         }),
     )
+
+    class Media:
+        js = ('admin/js/hide_token.js',)
+        css = {'all': ('admin/css/hide_token.css',)}
+
+
+# Customizar o AdminSite para esconder Token
+from django.contrib.admin.apps import AdminConfig
+
+class CustomAdminConfig(AdminConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'django.contrib.admin'
+    
+    def ready(self):
+        super().ready()
+        from django.contrib import admin
+        from rest_framework.authtoken.models import Token
+        try:
+            admin.site.unregister(Token)
+        except:
+            pass

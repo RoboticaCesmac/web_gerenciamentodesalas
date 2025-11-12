@@ -1,0 +1,11 @@
+/* Esconder Token do index do admin */
+a[href*="/admin/authtoken/"],
+tr:has(a[href*="/admin/authtoken/"]),
+div:has(> a[href*="/admin/authtoken/"]) {
+    display: none !important;
+}
+
+/* Esconder a seção authtoken inteira */
+[class*="authtoken"] {
+    display: none !important;
+}

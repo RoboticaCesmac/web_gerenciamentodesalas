@@ -15,12 +15,14 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from spaces.views import get_floor_plan
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('admin/spaces/get-floor-plan/', get_floor_plan, name='get-floor-plan'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('api/', include('spaces.urls')),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
