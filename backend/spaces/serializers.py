@@ -34,7 +34,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             'date', 'start_time', 'end_time', 'description', 'status',
             'user_email', 'user', 'capacity', 'is_recurring',
             'recurring_days', 'recurring_start_date', 'recurring_end_date',
-            'recurring_times',
+            'recurring_times', 'phone', 'course',
             'monday_start', 'monday_end',
             'tuesday_start', 'tuesday_end',
             'wednesday_start', 'wednesday_end',

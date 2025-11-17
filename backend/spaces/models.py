@@ -74,6 +74,8 @@ class Reservation(models.Model):
     start_time = models.TimeField('Hora Início', default=timezone.now)
     end_time = models.TimeField('Hora Fim', default=get_default_end_time)
     description = models.TextField('Descrição', blank=True)
+    phone = models.CharField('Telefone', max_length=20, blank=True)
+    course = models.CharField('Curso', max_length=100, blank=True)
     status = models.CharField(
         max_length=20, 
         choices=STATUS_CHOICES,

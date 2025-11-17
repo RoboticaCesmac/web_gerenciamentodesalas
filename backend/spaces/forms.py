@@ -102,8 +102,8 @@ class ReservationAdminForm(forms.ModelForm):
     class Meta:
         model = Reservation
         fields = [
-            'space', 'user', 'description', 'is_recurring',
-            'date', 'start_time', 'end_time',
+            'space', 'user', 'description', 'phone', 'course',  
+            'is_recurring', 'date', 'start_time', 'end_time',
             'recurring_days', 'recurring_start_date', 'recurring_end_date',
             'monday_start', 'monday_end',
             'tuesday_start', 'tuesday_end',
