@@ -1,3 +1,104 @@
+/*
+===========================================
+  GLOSSÁRIO DO CSS - ÍNDICE DE SEÇÕES
+===========================================
+
+SEÇÃO 1: Animações @keyframes (Linhas 102-202)
+  - slideInRight, slideInLeft
+  - fadeIn, fadeOut
+  - slideOutRight, slideOutLeft
+
+SEÇÃO 2: Novo Agendamento - Container (Linhas 202-270)
+  - .novo-agendamento estilos base e animações
+  - .recurring-toggle e estados
+  - Input checkboxes
+
+SEÇÃO 3: Sucesso de Agendamento (Linhas 272-380)
+  - .sucesso-agendamento e componentes
+  - .conclude-button e variações
+  - Animações de sucesso
+
+SEÇÃO 4: Confirmação e Resumo (Linhas 382-459)
+  - .confirmacao-agendamento
+  - .resumo-agendamento
+  - .resumo-content, .detail-chip-time
+  - Animações backward
+
+SEÇÃO 5: Dias e Checkboxes (Linhas 460-525)
+  - .days-selector
+  - .day-checkbox e estados
+  - .ocupado-recorrente
+
+SEÇÃO 6: Inputs e Formulários (Linhas 547-587)
+  - .input-with-icon para tel e textarea
+  - Placeholders customizados
+
+SEÇÃO 7: Layout Base e Container (Linhas 589-743)
+  - .agendamento-container
+  - .header, .blue-bar, .white-bar
+  - .user-bar, .user-info, .user-photo
+  - .logo, .add-button
+
+SEÇÃO 8: Desktop Media Query (Linhas 710-742)
+  - @media (min-width: 1024px)
+  - Ajustes para desktop
+  - .add-button desktop
+  - .main-content desktop
+
+SEÇÃO 9: Cards de Agendamento (Linhas 749-833)
+  - .agendamento-card e estrutura
+  - .card-left, .card-right
+  - .header-buttons, .edit-button, .cancel-button-small
+  - .building-icon, .campus-name
+  - .local-details, .local-info
+
+SEÇÃO 10: Informações de Agendamento (Linhas 740-826)
+  - .agendamento-info com ícones
+  - .status, cores de status
+  - .tag-status (confirmado, pendente, cancelado, concluido)
+
+SEÇÃO 11: Cards de Histórico (Linhas 1024-1160)
+  - .historico, .historico-list
+  - .historico-card com animações
+  - .historico-tags, .tag
+  - .historico-location, .location-row
+  - Tags de status por status
+
+SEÇÃO 12: Botões de Ação e Navegação (Linhas 882-1023)
+  - .cancel-button
+  - .back-button, .search-button
+  - .action-buttons estrutura
+  - .arrow-icon, .back-icon
+
+SEÇÃO 13: Novo Agendamento - Labels e Select (Linhas 910-950)
+  - .novo-agendamento label, h2
+  - .novo-agendamento select com custom dropdown
+  - .react-datepicker__day-names
+
+SEÇÃO 14: Calendário DatePicker (Linhas 1249-1525)
+  - .react-datepicker e variações
+  - .react-datepicker__month-container
+  - .calendar-header, .calendar-legend
+  - .calendar-navigation com nav buttons
+  - .time-inputs, .time-group, time input customization
+  - .calendar-nav buttons
+  - .legend-dot classes (disponivel, ocupado, selecionado)
+  - WebKit customizations
+
+SEÇÃO 15: Filtro de Histórico (Linhas 1161-1209)
+  - .filtro container e selects
+  - .filtro label, .filtro select
+  - .back-button para filtro
+
+SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
+  - .agendamento-details
+  - .location-selects
+  - .select-group
+  - .calendar .unavailable
+
+===========================================
+*/
+
 @keyframes slideInRight {
   from {
     opacity: 0;
@@ -8,6 +109,44 @@
     transform: translateX(0);
   }
 }
+@media screen and (min-width: 1024px) {
+  .agendamento-card {
+    animation: slideInLeft 0.5s ease-out;
+  }
+
+  .historico-card {
+    animation: slideInLeft 0.5s ease-out;
+  }
+
+  .historico-card:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+
+  .historico-card:nth-child(3) {
+    animation-delay: 0.2s;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 
 @keyframes slideOutRight {
   from {
@@ -202,8 +341,8 @@
   cursor: pointer;
   transition: all 0.3s ease;
   position: absolute;
-  bottom: 24px;
-  right: 24px;
+  bottom: -17px;
+  right: -36px;
   min-height: 44px;
   min-width: 120px;
 }
@@ -407,7 +546,7 @@
 /* Campo de telefone com máscara visual */
 .form-group input[type="tel"],
 .input-with-icon input[type="tel"] {
-  width: 100% !important;
+  width: 80% !important;
   padding: 12px 12px 12px 40px !important;
   border-radius: 8px !important;
   border: none !important;
@@ -894,6 +1033,14 @@
   display: block;
 }
 
+.novo-agendamento select,
+.time-group input[type="time"] {
+  font-family: 'Nunito Sans', sans-serif !important;
+  font-size: large !important;
+  font-weight: 500 !important;
+}
+
+/* Estilos específicos para o select */
 .novo-agendamento select {
   width: 100%;
   padding: 12px;
@@ -903,11 +1050,11 @@
   font-size: large;
   line-height: 120%;
   margin-bottom: 16px;
-  appearance: none; /* Remove default arrow */
+  appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10L12 15L17 10' stroke='%230069AD' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
-  padding-right: 44px; /* Space for arrow */
+  padding-right: 44px;
 }
 
 .react-datepicker__day-names {
@@ -1429,23 +1576,42 @@ p {
   border-radius: 12px;
   border: none;
   background: #FFFFFF;
-  font-size: 14px;
+  font-size: large !important; /* Forçar o mesmo tamanho */
   color: #333;
   gap: 4px;
   text-align: center;
+  font-weight: 500 !important; /* Mesmo peso da fonte */
+}
+
+.time-group input[type="time"]::placeholder {
+  font-family: 'Nunito Sans', sans-serif !important;
+  font-size: large !important;
+  font-weight: 500 !important;
 }
 
 /* Adicione estas regras para garantir a centralização em diferentes navegadores */
 .time-group input[type="time"]::-webkit-datetime-edit {
   text-align: center;
   padding: 0;
+  font-family: 'Nunito Sans', sans-serif !important;
+  font-size: large !important;
+  font-weight: 500 !important;
 }
 
 .time-group input[type="time"]::-webkit-datetime-edit-fields-wrapper {
   display: flex;
   justify-content: center;
+  font-family: 'Nunito Sans', sans-serif !important;
+  font-size: large !important;
+  font-weight: 500 !important;
 }
 
+/* Para Firefox e outros navegadores */
+.time-group input[type="time"] {
+  font-family: 'Nunito Sans', sans-serif !important;
+  font-size: large !important;
+  font-weight: 500 !important;
+}
 /* Remove default time input styling */
 .time-group input[type="time"]::-webkit-calendar-picker-indicator {
   background: none;
@@ -1492,7 +1658,7 @@ p {
   border-radius: 50% !important;
   font-size: 14px !important;
   position: relative;
-  
+   z-index: 1;
 }
 
 /* Status-based day colors */
@@ -1833,9 +1999,10 @@ p {
 }
 
 .big-check-icon {
-  width: 120px;
-  height: 120px;
-  margin-bottom: 24px; /* Adiciona espaço após o ícone */
+  width: 160px;
+  height: 160px;
+  margin-bottom: 32px;
+  animation: fadeIn 0.5s ease-out 0.2s both;
 }
 
 .sucesso-message {
@@ -2466,6 +2633,7 @@ p {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+     z-index: 1;
   }
 
   /* Ajuste responsivo para o novo-agendamento */
@@ -2813,4 +2981,94 @@ p {
   line-height: 1.5 !important;
   padding: 12px 12px 12px 40px !important;
   min-height: 88px !important;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estilo para dias ocupados */
+.react-datepicker__day.ocupado,
+.react-datepicker__day.ocupado-recorrente {
+  cursor: help !important;
+  pointer-events: auto !important;
+}
+
+.react-datepicker__day.ocupado:hover,
+.react-datepicker__day.ocupado-recorrente:hover {
+  background-color: inherit;
+  transform: scale(1.05);
+}
+
+.react-datepicker__day.ocupado .day-content:hover,
+.react-datepicker__day.ocupado-recorrente .day-content:hover {
+  cursor: help;
+}
+
+/* Estilos para o dia e tooltip */
+.day-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.day-content span {
+  position: relative;
+  z-index: 1;
+}
+
+/* Tooltip de reserva */
+.reservation-tooltip {
+  position: absolute;
+  bottom: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333333;
+  color: #FFFFFF;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: normal;
+  z-index: 9999; /* Aumente o z-index para ficar na frente */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  margin-bottom: 8px;
+  animation: slideInUp 0.2s ease-out;
+  pointer-events: none;
+  min-width: 200px;
+  max-width: 250px;
+}
+
+
+.tooltip-item {
+  margin: 4px 0;
+}
+
+.tooltip-item strong {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+/* Arrow do tooltip */
+.reservation-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #333333;
 }

@@ -33,7 +33,22 @@ export const Login: React.FC = () => {
       
       if (response.token) {
         localStorage.setItem('token', response.token);
-        localStorage.setItem('userProfile', JSON.stringify(response.user));
+        
+        // Se a API retorna user data junto com token, use isso
+        if (response.user) {
+          localStorage.setItem('userProfile', JSON.stringify(response.user));
+        } else {
+          // Caso contrário, crie um objeto mínimo do usuário
+          const minimalUser = {
+            id: 1,
+            username: username,
+            email: '',
+            first_name: '',
+            last_name: ''
+          };
+          localStorage.setItem('userProfile', JSON.stringify(minimalUser));
+        }
+        
         navigate('/agendamento');
       } else {
         throw new Error('Token não recebido');

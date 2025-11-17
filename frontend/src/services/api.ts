@@ -89,6 +89,8 @@ export interface ReservationData {
   recurring_horarios?: {
     [key: string]: { inicio: string; fim: string };
   };
+  phone?: string; // ADICIONE ESTE CAMPO
+  course?: string; // ADICIONE ESTE CAMPO
 }
 
 export const createReservation = async (data: ReservationData) => {
@@ -100,7 +102,9 @@ export const createReservation = async (data: ReservationData) => {
       space: data.space,
       description: data.description || '',
       status: 'pending',
-      is_recurring: data.is_recurring || false
+      is_recurring: data.is_recurring || false,
+      phone: data.phone || '', // ADICIONE ESTE CAMPO
+      course: data.course || '' // ADICIONE ESTE CAMPO
     };
 
     if (data.is_recurring) {
