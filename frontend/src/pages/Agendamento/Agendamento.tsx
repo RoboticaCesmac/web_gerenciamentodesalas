@@ -1,27 +1,3 @@
-/*
-===========================================
-  GLOSSÁRIO - ESTRUTURA DO ARQUIVO
-===========================================
-Linhas 1-50:      Imports e Constantes
-Linhas 51-100:    Interfaces de Tipos
-Linhas 101-200:   Componente Agendamento - Declaração e Estados
-Linhas 201-300:   Estados de Validação e UI
-Linhas 301-400:   Funções de Disponibilidade
-Linhas 401-500:   Funções de Navegação e Steps
-Linhas 501-600:   Funções de Edição e Cancelamento
-Linhas 601-700:   Funções Auxiliares (formatação, mapeamento)
-Linhas 701-800:   useEffect - Carregamento Inicial
-Linhas 801-900:   useEffect - Reações a Mudanças
-Linhas 901-1000:  JSX - Header e Navegação
-Linhas 1001-1100: JSX - Meus Agendamentos
-Linhas 1101-1200: JSX - Histórico de Agendamento
-Linhas 1201-1400: JSX - Novo Agendamento (Formulário)
-Linhas 1401-1600: JSX - Calendário e Steps
-Linhas 1601-1700: JSX - Rodapé e Confirmações
-Linhas 1701+:     Funções Utilitárias e Export
-===========================================
-*/
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Agendamento.css';
@@ -86,13 +62,7 @@ interface UnavailableTime {
 
 interface DayStatus {
   date: string;
-  status: 'disponivel' | 'ocupado' | 'ocupado-recorrente' | 'selecionado';
-  reservation?: {
-    user_name: string;
-    user_email: string;
-    telefone?: string;
-    curso?: string;
-  } | null;
+  status: 'disponivel' | 'ocupado' | 'selecionado';
 }
 
 type AgendamentoStep = 'campus' | 'andar' | 'sala' | 'confirmacao' | 'resumo' | 'sucesso';
@@ -331,90 +301,71 @@ const checkDayAvailability = async (date: Date) => {
       const startTime = timeRange.start;
       const endTime = timeRange.end;
 
-      // Buscar TODAS as reservas (não apenas do usuário)
-      const allReservations = await api.get('/api/reservations/', {
-          params: { space: spaceId }
-      });
-      
-      console.log('All reservations for space:', allReservations.data);
-      
-      const reservations = allReservations.data;
+        // Buscar TODAS as reservas (não apenas do usuário)
+        const allReservations = await api.get('/api/reservations/', {
+            params: { space: spaceId }
+        });
+        
+        console.log('All reservations for space:', allReservations.data);
+        
+        const reservations = allReservations.data;
 
         // Verificar conflitos normais (reservas únicas)
-      const conflictingRes = reservations?.find((res: any) => {
-          if (res.is_recurring) return false;
-          if (!res.date) return false;
-          
-          const resDate = format(new Date(res.date), 'yyyy-MM-dd');
-          if (resDate !== dateStr) return false;
-          
-          const resStart = res.start_time?.substring(0, 5) || '';
-          const resEnd = res.end_time?.substring(0, 5) || '';
-          
-          // Verifica sobreposição de horários
-          return !(endTime <= resStart || startTime >= resEnd);
-      });
+        const hasTimeConflict = reservations?.some((res: any) => {
+            if (res.is_recurring) return false;
+            if (!res.date) return false;
+            
+            const resDate = format(new Date(res.date), 'yyyy-MM-dd');
+            if (resDate !== dateStr) return false;
+            
+            const resStart = res.start_time?.substring(0, 5) || '';
+            const resEnd = res.end_time?.substring(0, 5) || '';
+            
+            // Verifica sobreposição de horários
+            return !(endTime <= resStart || startTime >= resEnd);
+        });
 
-      if (conflictingRes) {
-          console.log(`Conflito encontrado no dia ${dateStr}`);
-          const userName = conflictingRes.user_email?.split('@')[0] || 'Usuário';
-          return {
-              status: 'ocupado', // Reserva única
-              reservation: {
-                  user_name: userName,
-                  user_email: conflictingRes.user_email,
-                  telefone: conflictingRes.phone || 'Não informado',
-                  curso: conflictingRes.course || 'Não informado'
-              }
-          };
-      }
+        if (hasTimeConflict) {
+            console.log(`Conflito encontrado no dia ${dateStr}`);
+            return 'ocupado';
+        }
 
-       // Verificar conflitos com recorrências
-      const recurringConflict = reservations?.find((res: any) => {
-          if (!res.is_recurring) return false;
-          if (!res.recurring_days) return false;
-          
-          // Verificar se a data está dentro do período de recorrência
-          const startDateRecurring = new Date(res.recurring_start_date);
-          const endDateRecurring = new Date(res.recurring_end_date);
-          
-          if (date < startDateRecurring || date > endDateRecurring) return false;
-          
-          // Verificar se o dia da semana está nos dias recorrentes
-          const dayOfWeek = date.getDay();
-          const dayMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
-          const dayCode = dayMap[dayOfWeek as keyof typeof dayMap];
-          
-          if (!res.recurring_days.includes(dayCode)) return false;
-          
-          const resStart = res.start_time?.substring(0, 5) || '';
-          const resEnd = res.end_time?.substring(0, 5) || '';
-          
-          // Verifica sobreposição de horários
-          return !(endTime <= resStart || startTime >= resEnd);
-      });
+        // Verificar conflitos com recorrências
+        const hasRecurringConflict = reservations?.some((res: any) => {
+            if (!res.is_recurring) return false;
+            if (!res.recurring_days) return false;
+            
+            // Verificar se a data está dentro do período de recorrência
+            const startDateRecurring = new Date(res.recurring_start_date);
+            const endDateRecurring = new Date(res.recurring_end_date);
+            
+            if (date < startDateRecurring || date > endDateRecurring) return false;
+            
+            // Verificar se o dia da semana está nos dias recorrentes
+            const dayOfWeek = date.getDay();
+            const dayMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+            const dayCode = dayMap[dayOfWeek as keyof typeof dayMap];
+            
+            if (!res.recurring_days.includes(dayCode)) return false;
+            
+            const resStart = res.start_time?.substring(0, 5) || '';
+            const resEnd = res.end_time?.substring(0, 5) || '';
+            
+            // Verifica sobreposição de horários
+            return !(endTime <= resStart || startTime >= resEnd);
+        });
 
-      if (recurringConflict) {
-          console.log(`Conflito recorrente encontrado no dia ${dateStr}`);
-          const userName = recurringConflict.user_email?.split('@')[0] || 'Usuário';
-          return {
-              status: 'ocupado-recorrente', // Mantém como 'ocupado-recorrente'
-              reservation: {
-                  user_name: userName,
-                  user_email: recurringConflict.user_email,
-                  telefone: recurringConflict.phone || 'Não informado',
-                  curso: recurringConflict.course || 'Não informado'
-              }
-          };
-      }
-      
-      return { status: 'disponivel', reservation: null };
-  } catch (err) {
-      console.error('Error checking availability:', err);
-      return { status: 'disponivel', reservation: null };
-  }
-};
-
+        if (hasRecurringConflict) {
+            console.log(`Conflito recorrente encontrado no dia ${dateStr}`);
+            return 'ocupado-recorrente';
+        }
+        
+        return 'disponivel';
+    } catch (err) {
+        console.error('Error checking availability:', err);
+        return 'disponivel';
+    }
+  };
 
   // Função para carregar disponibilidade do mês atual
   const loadMonthAvailability = async () => {
@@ -1013,22 +964,43 @@ const getDayClassName = (date: Date) => {
   const handleCancelConfirm = async () => {
     if (reservationToCancel) {
       try {
-        // await cancelReservation(reservationToCancel);
+        // Enviar request para cancelar a reserva no backend
+        console.log(`Cancelando reserva ID: ${reservationToCancel}`);
+        const result = await cancelReservation(reservationToCancel);
+        console.log('Resultado do cancelamento:', result);
         
-        const canceledReservation = reservations.find(r => r.id === reservationToCancel);
-        if (canceledReservation) {
-          // Atualizar o status localmente
-          const updatedReservations = reservations.map(r => 
-            r.id === reservationToCancel 
-              ? { ...r, status: 'canceled' as const } 
-              : r
+        // Atualizar o status localmente após sucesso no backend
+        const updatedReservations = reservations.map(r => 
+          r.id === reservationToCancel 
+            ? { ...r, status: 'canceled' as const } 
+            : r
+        );
+        setReservations(updatedReservations);
+        
+        // Atualizar também o histórico com o novo status
+        const updatedHistorico = historico.map(r =>
+          r.id === reservationToCancel
+            ? { ...r, status: 'canceled' as const }
+            : r
+        );
+        setHistorico(updatedHistorico);
+        
+        // Recarregar as reservas do backend para garantir sincronização
+        try {
+          const freshReservations = await getUserReservations();
+          setHistorico(freshReservations);
+          const activeReservations = freshReservations.filter(
+            (res: any) => res.status !== 'canceled' && res.status !== 'completed'
           );
-          setReservations(updatedReservations);
-          setHistorico(updatedReservations);
+          setReservations(activeReservations);
+        } catch (error) {
+          console.error('Erro ao recarregar reservas:', error);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Erro ao cancelar reserva:', error);
-        setError('Erro ao cancelar a reserva');
+        console.error('Response status:', error.response?.status);
+        console.error('Response data:', error.response?.data);
+        setError(error.response?.data?.detail || 'Erro ao cancelar a reserva');
       }
     }
     setShowCancelConfirmation(false);
@@ -1151,27 +1123,10 @@ const getDayClassName = (date: Date) => {
     <div className="agendamento-container">
       <header className="header">
         <div className="blue-bar">
-          <button className="logout-button" onClick={handleLogout}>
-            <img src={LogoutIcon} alt="Sair" />
-          </button>
+          
         </div>
         <div className="white-bar">
           <img src={logoImg} alt="Logo" className="logo" />
-          <div className="user-bar">
-            <img 
-              src={userProfile?.profile_photo || userImg} 
-              alt="Perfil" 
-              className="user-photo" 
-            />
-            <div className="user-info">
-              <span className="welcome">Bem-vindo!</span>
-              <span className="username">{userProfile ? formatUsername(userProfile.username) : 'Carregando...'}</span>
-            </div>
-            <button className="add-button" onClick={handleAddClick}>
-              <img src={PlusIcon} alt="Adicionar" className="plus-icon" />
-              <span className="desktop-only">Agendar</span>
-            </button>
-          </div>
           <button className="logout-button desktop-only" onClick={handleLogout}>
             <img src={LogoutIcon} alt="Sair" />
           </button>
@@ -1179,6 +1134,22 @@ const getDayClassName = (date: Date) => {
       </header>
 
       <main className="main-content">
+        <div className="user-bar">
+          <img 
+            src={userProfile?.profile_photo || userImg} 
+            alt="Perfil" 
+            className="user-photo" 
+          />
+          <div className="user-info">
+            <span className="welcome">Bem-vindo!</span>
+            <span className="username">{userProfile ? formatUsername(userProfile.username) : 'Carregando...'}</span>
+          </div>
+          <button className="add-button" onClick={handleAddClick}>
+            <img src={PlusIcon} alt="Adicionar" className="plus-icon" />
+            <span className="desktop-only">Agendar</span>
+          </button>
+        </div>
+
         <section className="proximos-agendamentos">
           <h2>Meus agendamentos</h2>
           {loading ? (
@@ -1541,44 +1512,6 @@ const getDayClassName = (date: Date) => {
                     return 'ocupado';
                   }
                   return getDayClassName(date);
-                }}
-                renderDayContents={(day, date) => {
-                  const dateStr = format(date, 'yyyy-MM-dd');
-                  const dayStatus = dayStatuses.find(d => d.date === dateStr);
-                  const isOccupied = dayStatus?.status === 'ocupado' || dayStatus?.status === 'ocupado-recorrente';
-                  
-                  return (
-                    <div
-                      className="day-content"
-                      onMouseEnter={() => {
-                        console.log('Mouse enter on day:', dateStr, 'isOccupied:', isOccupied);
-                        isOccupied && setHoveredDay(dateStr);
-                      }}
-                      onMouseLeave={() => {
-                        console.log('Mouse leave on day:', dateStr);
-                        setHoveredDay(null);
-                      }}
-                      style={{
-                        cursor: isOccupied ? 'help' : 'pointer',
-                        pointerEvents: 'auto'
-                      }}
-                    >
-                      <span>{day}</span>
-                      {hoveredDay === dateStr && dayStatus?.reservation && (
-                        <div className="reservation-tooltip">
-                          <div className="tooltip-item">
-                            <strong>Usuário:</strong> {dayStatus.reservation.user_name}
-                          </div>
-                          <div className="tooltip-item">
-                            <strong>Telefone:</strong> {dayStatus.reservation.telefone || 'N/A'}
-                          </div>
-                          <div className="tooltip-item">
-                            <strong>Curso:</strong> {dayStatus.reservation.curso || 'N/A'}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
                 }}
                 renderCustomHeader={({ date }) => (
                   <div className="calendar-header">
