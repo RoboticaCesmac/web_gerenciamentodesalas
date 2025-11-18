@@ -99,6 +99,107 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
 ===========================================
 */
 
+/*
+===========================================
+  GLOSSÁRIO DO CSS - ÍNDICE DE SEÇÕES
+===========================================
+
+SEÇÃO 1: Animações @keyframes (Linhas 102-202)
+  - slideInRight, slideInLeft
+  - fadeIn, fadeOut
+  - slideOutRight, slideOutLeft
+
+SEÇÃO 2: Novo Agendamento - Container (Linhas 202-270)
+  - .novo-agendamento estilos base e animações
+  - .recurring-toggle e estados
+  - Input checkboxes
+
+SEÇÃO 3: Sucesso de Agendamento (Linhas 272-380)
+  - .sucesso-agendamento e componentes
+  - .conclude-button e variações
+  - Animações de sucesso
+
+SEÇÃO 4: Confirmação e Resumo (Linhas 382-459)
+  - .confirmacao-agendamento
+  - .resumo-agendamento
+  - .resumo-content, .detail-chip-time
+  - Animações backward
+
+SEÇÃO 5: Dias e Checkboxes (Linhas 460-525)
+  - .days-selector
+  - .day-checkbox e estados
+  - .ocupado-recorrente
+
+SEÇÃO 6: Inputs e Formulários (Linhas 547-587)
+  - .input-with-icon para tel e textarea
+  - Placeholders customizados
+
+SEÇÃO 7: Layout Base e Container (Linhas 589-743)
+  - .agendamento-container
+  - .header, .blue-bar, .white-bar
+  - .user-bar, .user-info, .user-photo
+  - .logo, .add-button
+
+SEÇÃO 8: Desktop Media Query (Linhas 710-742)
+  - @media (min-width: 1024px)
+  - Ajustes para desktop
+  - .add-button desktop
+  - .main-content desktop
+
+SEÇÃO 9: Cards de Agendamento (Linhas 749-833)
+  - .agendamento-card e estrutura
+  - .card-left, .card-right
+  - .header-buttons, .edit-button, .cancel-button-small
+  - .building-icon, .campus-name
+  - .local-details, .local-info
+
+SEÇÃO 10: Informações de Agendamento (Linhas 740-826)
+  - .agendamento-info com ícones
+  - .status, cores de status
+  - .tag-status (confirmado, pendente, cancelado, concluido)
+
+SEÇÃO 11: Cards de Histórico (Linhas 1024-1160)
+  - .historico, .historico-list
+  - .historico-card com animações
+  - .historico-tags, .tag
+  - .historico-location, .location-row
+  - Tags de status por status
+
+SEÇÃO 12: Botões de Ação e Navegação (Linhas 882-1023)
+  - .cancel-button
+  - .back-button, .search-button
+  - .action-buttons estrutura
+  - .arrow-icon, .back-icon
+
+SEÇÃO 13: Novo Agendamento - Labels e Select (Linhas 910-950)
+  - .novo-agendamento label, h2
+  - .novo-agendamento select com custom dropdown
+  - .react-datepicker__day-names
+
+SEÇÃO 14: Calendário DatePicker (Linhas 1249-1525)
+  - .react-datepicker e variações
+  - .react-datepicker__month-container
+  - .calendar-header, .calendar-legend
+  - .calendar-navigation com nav buttons
+  - .time-inputs, .time-group, time input customization
+  - .calendar-nav buttons
+  - .legend-dot classes (disponivel, ocupado, selecionado)
+  - WebKit customizations
+
+SEÇÃO 15: Filtro de Histórico (Linhas 1161-1209)
+  - .filtro container e selects
+  - .filtro label, .filtro select
+  - .back-button para filtro
+
+SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
+  - .agendamento-details
+  - .location-selects
+  - .select-group
+  - .calendar .unavailable
+
+===========================================
+*/
+
 @keyframes slideInRight {
   from {
     opacity: 0;
@@ -109,6 +210,44 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
     transform: translateX(0);
   }
 }
+@media screen and (min-width: 1024px) {
+  .agendamento-card {
+    animation: slideInLeft 0.5s ease-out;
+  }
+
+  .historico-card {
+    animation: slideInLeft 0.5s ease-out;
+  }
+
+  .historico-card:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+
+  .historico-card:nth-child(3) {
+    animation-delay: 0.2s;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media screen and (min-width: 1024px) {
   .agendamento-card {
     animation: slideInLeft 0.5s ease-out;
@@ -343,8 +482,18 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
   position: absolute;
   bottom: -17px;
   right: -36px;
+  bottom: -17px;
+  right: -36px;
   min-height: 44px;
   min-width: 120px;
+}
+
+.action-buttons .conclude-button {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  right: auto;
 }
 
 .conclude-button img {
@@ -363,7 +512,7 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
 
 .conclude-button:hover {
   background: #FFE74C;
-  transform: translateY(-2px);
+  transform: translateX(-50%) translateY(-2px);
   box-shadow: 0 4px 12px rgba(248, 196, 0, 0.3);
 }
 
@@ -376,7 +525,7 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
 }
 
 .conclude-button:active {
-  transform: translateY(0);
+  transform: translateX(-50%) translateY(0);
 }
 
 /* Animações para as abas de confirmação e resumo */
@@ -547,6 +696,7 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
 .form-group input[type="tel"],
 .input-with-icon input[type="tel"] {
   width: 80% !important;
+  width: 80% !important;
   padding: 12px 12px 12px 40px !important;
   border-radius: 8px !important;
   border: none !important;
@@ -588,8 +738,8 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
 }
 
 .agendamento-container {
-  width: 402px;
-  min-height: 100vh;
+  width: 100%;
+  min-height: 5%;
   background-color: #F5F5F5;
   margin: 0 auto;
 }
@@ -646,19 +796,16 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
 .user-bar {
   background: #fff;
   margin: 35px auto 0;
-  position: fixed;
-  top: 124px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 101;
-  width: 324px;
-  height: 44px;
+  z-index: 1;
+  width: 96.4%;
+  height: 5%;
   border-radius: 18px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   padding: 11px 18px;
   gap: 16px;
+  margin-top: -8%;
 }
 
 .user-photo {
@@ -742,7 +889,7 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
 }
 
 .main-content {
-  width: 360px; /* Match user-bar width */
+  width: 90%; /* Match user-bar width */
   margin: 60px auto 0; /* Center content and add top margin */
   padding: 32px 0 20px; /* Remove horizontal padding */
 }
@@ -1041,6 +1188,14 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
 }
 
 /* Estilos específicos para o select */
+.novo-agendamento select,
+.time-group input[type="time"] {
+  font-family: 'Nunito Sans', sans-serif !important;
+  font-size: large !important;
+  font-weight: 500 !important;
+}
+
+/* Estilos específicos para o select */
 .novo-agendamento select {
   width: 100%;
   padding: 12px;
@@ -1051,9 +1206,11 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
   line-height: 120%;
   margin-bottom: 16px;
   appearance: none;
+  appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10L12 15L17 10' stroke='%230069AD' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
+  padding-right: 44px;
   padding-right: 44px;
 }
 
@@ -1062,38 +1219,9 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
   padding: 1.4rem 0 0 1.4rem;
 }
 
-.back-button, .search-button {
-  width: 40px;
-  height: 40px;
-  background-color: #0069AD;  /* Changed from #FFD700 to #0069AD */
-  border-radius: 50%;
-  position: absolute;
-  
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  cursor: pointer;
-}
-
 /* Novo Agendamento buttons - Yellow */
 .filtro .search-button,
-.action-buttons .back-button,
-.action-buttons .search-button {
-  width: 40px;
-  height: 40px;
-  background-color: #FFD700;
-  border-radius: 50%;
-  position: absolute;
- 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  cursor: pointer;
-}
-
-/* Update the calendar container to allow space for buttons */
+/* Calendar container styles */
 .react-datepicker__month-container {
   width: 100%;
   background: #FFFFFF;
@@ -1111,7 +1239,12 @@ SEÇÃO 16: Agendamento Details (Linhas 1215-1248)
 .arrow-icon {
   width: 24px;
   height: 24px;
+}
 
+.back-icon {
+  width: 24px;
+  height: 24px;
+  transform: rotate(180deg);
 }
 
 h2 {
@@ -1359,17 +1492,18 @@ p {
   font-family: Inter, sans-serif !important;
   border: none !important;
   width: 100% !important;
-  max-width: 280px !important; /* Limit calendar width */
+  max-width: 22em !important;
   margin: 0 auto;
+  min-width: 16em;
 }
 
 .react-datepicker__month-container {
   width: 100%;
   background: #FFFFFF;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 0.6em;
+  padding: 1.2em;
   position: relative;
-  margin-bottom: 0; /* Remove margem extra */
+  margin-bottom: 0;
 }
 
 /* Calendar header with title and legend */
@@ -1377,29 +1511,29 @@ p {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 16px;
-  padding: 0 8px;
+  margin-bottom: 1.2em;
+  padding: 0 0.6em;
 }
 
 .calendar-month-title {
-  font-size: large;
+  font-size: 1.1em;
   font-weight: 500;
   color: #333;
-  margin-bottom: 8px;
+  margin-bottom: 0.6em;
 }
 
 .calendar-legend {
   display: flex;
   justify-content: center;
-  gap: 16px;
-  margin-top: 8px;
+  gap: 1.2em;
+  margin-top: 0.6em;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
+  gap: 0.3em;
+  font-size: 0.9em;
   color: #666;
 }
 
@@ -1447,31 +1581,11 @@ p {
   right: 16px;
 }
 
-.action-buttons .back-button {
-  left: 20px;
-  bottom: 2px;
-}
-
-.action-buttons .search-button {
-  right: 20px;
-  bottom: 2px;
-}
-
-/* Common icon styles */
-.back-icon,
-.arrow-icon {
-  width: 32px;
-  height: 32px;
-}
-
-.back-icon {
-  transform: rotate(180deg);
-}
-
 /* Calendar section adjustments */
 .calendar-section {
   position: relative;
   margin: 0 3% 14% 3%;
+  width: 94%;
 }
 
 .calendar-navigation {
@@ -1484,19 +1598,19 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 0.9em;
+  margin-bottom: 1.2em;
 }
 
 .month-title {
-  font-size: large;
+  font-size: 1.1em;
   font-weight: 500;
   color: #333;
 }
 
 .calendar-nav {
-  width: 32px;
-  height: 32px;
+  width: 2.2em;
+  height: 2.2em;
   background-color: #0069AD !important;
   border-radius: 50% !important;
   display: flex;
@@ -1505,7 +1619,8 @@ p {
   border: none;
   cursor: pointer;
   padding: 0;
-  margin: 0 8px;
+  margin: 0 0.5em;
+  flex-shrink: 0;
 }
 
 .calendar-nav:hover {
@@ -1519,8 +1634,8 @@ p {
 
 .calendar-nav .back-icon,
 .calendar-nav .arrow-icon {
-  width: 20px;
-  height: 20px;
+  width: 1.4em;
+  height: 1.4em;
   filter: brightness(0) invert(1); /* Faz o ícone ficar branco */
 }
 
@@ -1529,16 +1644,16 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-bottom: 16px;
-  padding: 0 8px;
+  gap: 1.2em;
+  margin-bottom: 1.2em;
+  padding: 0 0.5em;
 }
 
 .month-title {
-  font-size: 16px;
+  font-size: 1.1em;
   font-weight: 600;
   color: #333;
-  min-width: 120px;
+  min-width: 8em;
   text-align: center;
 }
 
@@ -1564,28 +1679,29 @@ p {
   text-align: center;
   color: #FFFFFF;
   font-weight: 600;
-  font-size: 13px;
-  margin-bottom: 8px;
+  font-size: 0.85em;
+  margin-bottom: 0.6em;
   display: block;
 }
 
 .time-group input[type="time"] {
-  height: 44px;
-  width: 200px;
+  height: 2.75em;
+  width: 76%;
   padding: 0;
-  border-radius: 12px;
+  border-radius: 0.9em;
   border: none;
   background: #FFFFFF;
-  font-size: large !important; /* Forçar o mesmo tamanho */
+  font-size: 1em !important;
   color: #333;
-  gap: 4px;
+  gap: 0.3em;
   text-align: center;
-  font-weight: 500 !important; /* Mesmo peso da fonte */
+  font-weight: 500 !important;
+  margin-left: 15%;
 }
 
 .time-group input[type="time"]::placeholder {
   font-family: 'Nunito Sans', sans-serif !important;
-  font-size: large !important;
+  font-size: 1em !important;
   font-weight: 500 !important;
 }
 
@@ -1594,7 +1710,7 @@ p {
   text-align: center;
   padding: 0;
   font-family: 'Nunito Sans', sans-serif !important;
-  font-size: large !important;
+  font-size: 1em !important;
   font-weight: 500 !important;
 }
 
@@ -1602,14 +1718,14 @@ p {
   display: flex;
   justify-content: center;
   font-family: 'Nunito Sans', sans-serif !important;
-  font-size: large !important;
+  font-size: 1em !important;
   font-weight: 500 !important;
 }
 
 /* Para Firefox e outros navegadores */
 .time-group input[type="time"] {
   font-family: 'Nunito Sans', sans-serif !important;
-  font-size: large !important;
+  font-size: 1em !important;
   font-weight: 500 !important;
 }
 /* Remove default time input styling */
@@ -1625,7 +1741,7 @@ p {
 .calendar-nav.prev:disabled,
 .calendar-nav.next:disabled {
   background-color: #FFFFFF;
-  border: 2px solid #0069AD;
+  border: 0.15em solid #0069AD;
   cursor: not-allowed;
 }
 
@@ -1651,14 +1767,16 @@ p {
 
 /* Update calendar day styles */
 .react-datepicker__day {
-  width: 32px !important;
-  height: 32px !important;
-  line-height: 32px !important;
-  margin: 2px !important;
+  width: 14.28% !important;
+  aspect-ratio: 1 !important;
+  margin: 0.15em !important;
   border-radius: 50% !important;
-  font-size: 14px !important;
+  font-size: 0.9em !important;
   position: relative;
-   z-index: 1;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Status-based day colors */
@@ -1711,33 +1829,33 @@ p {
 .selected-details {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 24px;
+  gap: 0.6em;
+  margin-bottom: 1.5em;
   width: 100%; /* Garante que não ultrapasse a largura do container */
 }
 
 .detail-chip-location {
   background: #FFD700;
-  border-radius: 20px;
-  padding: 8px 16px;
+  border-radius: 1.5em;
+  padding: 0.6em 1.2em;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.6em;
   color: #ffffff;
   font-weight: 600;
-  font-size: 11px;
+  font-size: 0.85em;
 }
 
 .detail-chip-time {
   background: #31B2E3;
-  border-radius: 20px;
-  padding: 8px 16px;
+  border-radius: 1.5em;
+  padding: 0.6em 1.2em;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.6em;
   color: #ffffff;
   font-weight: 600;
-  font-size: 11px;
+  font-size: 0.85em;
 }
 
 .detail-chip-location span {
@@ -1747,20 +1865,20 @@ p {
 }
 
 .detail-chip img {
-  width: 16px;
-  height: 16px;
+  width: 1.2em;
+  height: 1.2em;
 }
 
 .detail-chip-location img {
-  width: 16px;
-  height: 16px;
+  width: 1.2em;
+  height: 1.2em;
   filter: brightness(0) invert(1); /* Isso fará o ícone ficar branco */
 }
 
 /* Se precisar ajustar o tom de branco, pode usar: */
 .detail-chip-location img {
-  width: 16px;
-  height: 16px;
+  width: 1.2em;
+  height: 1.2em;
   filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%);
 }
 
@@ -1773,28 +1891,27 @@ p {
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 0.6em;
+  margin-bottom: 1.2em;
 }
 
 .form-group label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  text-align: center !important;
   color: #FFFFFF;
-  font-size: large;
-  font-weight: 500;
-  margin: 0;
+  font-weight: 600;
+  font-size: 0.85em;
+  margin-bottom: 0.6em;
+  display: block;
 }
 
 .form-group input,
 .form-group textarea {
-  width: 90%;
-  padding: 12px;
-  border-radius: 8px;
+  width: 95%;
+  padding: 0.9em;
+  border-radius: 0.6em;
   border: none;
   background: #FFFFFF;
-  font-size: 14px;
+  font-size: 0.95em;
 }
 
 .form-group textarea {
@@ -1804,110 +1921,108 @@ p {
 .input-with-icon {
   position: relative;
   width: 100%;
-  margin-bottom: 16px;
+  margin-bottom: 1.2em;
 }
 
 .input-with-icon input,
 .input-with-icon textarea {
   width: 80%;
-  padding: 12px 12px 12px 40px;
-  border-radius: 8px;
+  padding: 0.9em 0.9em 0.9em 3em;
+  border-radius: 0.6em;
   border: none;
   background: #FFFFFF;
-  font-size: 14px;
+  font-size: 0.95em;
 }
 
 .input-with-icon .input-icon {
   position: absolute;
-  left: 12px;
+  left: 0.9em;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
+  width: 1.5em;
+  height: 1.5em;
   pointer-events: none;
 }
 
 .input-with-icon textarea + .input-icon {
-  top: 24px;
+  top: 1.8em;
   transform: none;
 }
 
 .resumo-agendamento {
   background-color: #0069AD;
-  border-radius: 10px;
+  border-radius: 0.7em;
   padding: 0% 12% 8%;
   color: #FFFFFF;
   position: relative;
-  min-height: 400px;
+  min-height: 28em;
 }
 
 .resumo-agendamento h2 {
   color: #ffffff;
-  font-size: 24px;
+  font-size: 1.6em;
   text-align: center;
-  margin-bottom: 32px;
-  font-weight:800;
+  margin-bottom: 2em;
+  font-weight: 800;
 }
 
 .resumo-content {
   display: flex;
   flex-direction: column;
-  gap: 16px; /* Reduzido de 32px para 16px para aproximar os grupos */
-  margin-bottom: 80px;
+  gap: 1.2em;
+  margin-bottom: 6em;
 }
 
 .resumo-group {
   display: flex;
   flex-direction: column;
-  gap: 4px; /* Reduzido de 16px para 4px para aproximar os itens dentro do grupo */
+  gap: 0.3em;
 }
 
 .resumo-item {
   display: flex;
-  align-items: center; /* Alterado de baseline para center */
-  gap: 8px;
-  min-height: 24px; /* Altura mínima para manter consistência */
+  align-items: center;
+  gap: 0.6em;
+  min-height: 1.8em;
 }
 
 .resumo-item .label {
   color: #FFD700;
-  font-size: large;
+  font-size: 1em;
   font-weight: 700;
-  min-width: 80px;
-  margin: 0; /* Removido margin */
+  min-width: 6em;
+  margin: 0;
 }
 .resumo-item .label-2 {
   color: #FFFFFF;
-  font-size: large;
+  font-size: 1em;
   font-weight: 700;
-  min-width: 80px;
-  margin: 0; /* Removido margin */
+  min-width: 6em;
+  margin: 0;
 }
 
 .resumo-item .value {
   color: #FFFFFF;
-  margin: 0; /* Removido margin */
-  font-size: 16px;
+  margin: 0;
+  font-size: 1.1em;
 }
 
 /* Adicione esta regra para criar o espaço entre grupos específicos */
 .resumo-group + .resumo-group {
-  margin-top: 16px; /* Espaço entre grupos */
+  margin-top: 1.2em;
 }
 
 .action-buttons {
-  position: absolute;
-  bottom: 24px;
-  left: 24px;
-  right: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  position: relative;
+  height: 60px;
 }
 
 .back-button {
-  width: 40px;
-  height: 40px;
+  position: absolute;
+  left: 3%;
+  bottom: 0;
+  width: 44px;
+  height: 44px;
   background-color: #FFD700;
   border-radius: 50%;
   display: flex;
@@ -1915,22 +2030,41 @@ p {
   justify-content: center;
   border: none;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .confirm-button {
-  width: auto;
-  height: 40px;
+  position: absolute;
+  right: 3%;
+  bottom: 0;
+  height: 44px;
   background-color: #FFD700;
   border-radius: 16px;
-  padding: 8px 24px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   cursor: pointer;
   border: none;
-  margin-left: auto; /* Força o botão para a direita */
-  min-height: 44px;
-  min-width: 88px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.action-buttons .search-button {
+  position: absolute;
+  right: 3%;
+  bottom: 0;
+  width: 44px;
+  height: 44px;
+  background-color: #FFD700;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .confirm-button img {
@@ -1999,6 +2133,10 @@ p {
 }
 
 .big-check-icon {
+  width: 160px;
+  height: 160px;
+  margin-bottom: 32px;
+  animation: fadeIn 0.5s ease-out 0.2s both;
   width: 160px;
   height: 160px;
   margin-bottom: 32px;
@@ -2361,7 +2499,21 @@ p {
 
 /* Primeiro, esconder logout na white-bar no mobile */
 .white-bar .logout-button {
-  display: none;
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1);
+  display: flex;
+    position: absolute;
+    right: 4em;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.6em;
+    width: 1.5em;
+    height: 1.5em;
+    filter: invert(27%) sepia(85%) saturate(1843%) hue-rotate(189deg) brightness(91%) contrast(101%);
 }
 
 /* Media query para desktop */
@@ -2410,12 +2562,9 @@ p {
   }
   
   .user-bar {
-    position: absolute;
     top: 130px;
     left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 86%;
+    width:97%;
     height: 60px;
     border-radius: 10px;
     background: #FFFFFF;
@@ -2425,7 +2574,7 @@ p {
     padding: 0 24px;
     gap: 16px;
     margin: 0;
-    z-index: 101;
+    z-index: 1;
   }
 
   .user-photo {
@@ -2462,12 +2611,12 @@ p {
   .main-content {
     width: 90%;
     max-width: 100%;
-    margin: 106px auto 0;
+    margin: 2% auto 0;
     height: 100%;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+   
     position: relative;
   }
 
@@ -2505,7 +2654,7 @@ p {
     width: 28.3%; /* 362px / 1280px */
     max-height: none; /* Remove o max-height */
     height: auto;
-    margin-top: 4%;
+    margin-top: 10.5%;
     border-radius: 10px;
     display: flex;
     flex-direction: column;
@@ -2532,34 +2681,37 @@ p {
 
   /* Search button no desktop */
   .search-button {
-    width: 52px;
-    height: 52px;
+    width: 3.2em;
+    height: 3.2em;
   }
   /* Botões de ação sempre no final */
   .novo-agendamento .action-buttons {
-    position: relative; /* Muda de sticky para relative */
-    bottom: auto;
-    background-color: transparent;
-    padding: 12px 0;
-    margin: 12px 0;
+    position: absolute;
+    bottom: 1.5em;
+    left: 3%;
+    right: 3%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
   }
 
   /* Logout no desktop */
   .white-bar .logout-button {
     display: flex;
     position: absolute;
-    right: 64px;
+    right: 4em;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
-    padding: 8px;
+    padding: 0.6em;
   }
 
   .white-bar .logout-button img {
-    width: 24px;
-    height: 24px;
+    width: 1.5em;
+    height: 1.5em;
     filter: invert(27%) sepia(85%) saturate(1843%) hue-rotate(189deg) brightness(91%) contrast(101%);
   }
 
@@ -2593,8 +2745,8 @@ p {
     width: 90% !important;
     margin: 0 auto;
     background: #FFFFFF;
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 0.6em;
+    padding: 1.2em;
   }
 
   .react-datepicker__month {
@@ -2614,33 +2766,30 @@ p {
     display: flex !important;
     justify-content: space-around !important;
     width: 100% !important;
-    margin-bottom: 0.4rem !important;
+    margin-bottom: 0.3em !important;
   }
 
   .react-datepicker__day-name {
-    width: 2rem !important;
-    line-height: 2rem !important;
-    margin: 0.166rem !important;
+    width: 2em !important;
+    line-height: 2em !important;
+    margin: 0.12em !important;
     color: #666 !important;
     font-weight: 500 !important;
   }
 
   .react-datepicker__day {
-    width: 2rem !important;
-    height: 2rem !important;
-    line-height: 2rem !important;
-    margin: 0.166rem !important;
+    width: 14.28% !important;
+    aspect-ratio: 1 !important;
+    margin: 0.12em !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-     z-index: 1;
+    z-index: 1;
   }
 
   /* Ajuste responsivo para o novo-agendamento */
    .novo-agendamento {
-    width: 28.3%;
-    min-width: 320px;
-    max-width: 560px;
+    width: 30%;
     height: auto;
     display: flex;
     flex-direction: column;
@@ -2648,7 +2797,9 @@ p {
 
   /* Ajuste de espaçamento interno para manter proporções */
   .novo-agendamento .calendar-section {
-    padding: 0 5%;
+    display: flex;
+    width: 100%;
+    padding: 2%;
   }
 
   /* Garantir que o calendário mantenha proporções */
@@ -2662,7 +2813,7 @@ p {
   /* Ajustes para navegação do mês */
   .month-navigation {
     width: 90%;
-    margin: 0 auto 16px;
+    margin: 0 auto 1.2em;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -2736,13 +2887,12 @@ p {
 }
 
 /* Mobile styles - manter os existentes */
-.blue-bar .logout-button {
+.white-bar .logout-button img{
   position: absolute;
-  right: 16px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  margin-top: -25%;
 }
 
 .blue-bar .logout-button img {
@@ -2981,6 +3131,96 @@ p {
   line-height: 1.5 !important;
   padding: 12px 12px 12px 40px !important;
   min-height: 88px !important;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estilo para dias ocupados */
+.react-datepicker__day.ocupado,
+.react-datepicker__day.ocupado-recorrente {
+  cursor: help !important;
+  pointer-events: auto !important;
+}
+
+.react-datepicker__day.ocupado:hover,
+.react-datepicker__day.ocupado-recorrente:hover {
+  background-color: inherit;
+  transform: scale(1.05);
+}
+
+.react-datepicker__day.ocupado .day-content:hover,
+.react-datepicker__day.ocupado-recorrente .day-content:hover {
+  cursor: help;
+}
+
+/* Estilos para o dia e tooltip */
+.day-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.day-content span {
+  position: relative;
+  z-index: 1;
+}
+
+/* Tooltip de reserva */
+.reservation-tooltip {
+  position: absolute;
+  bottom: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333333;
+  color: #FFFFFF;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: normal;
+  z-index: 9999; /* Aumente o z-index para ficar na frente */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  margin-bottom: 8px;
+  animation: slideInUp 0.2s ease-out;
+  pointer-events: none;
+  min-width: 200px;
+  max-width: 250px;
+}
+
+
+.tooltip-item {
+  margin: 4px 0;
+}
+
+.tooltip-item strong {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+/* Arrow do tooltip */
+.reservation-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #333333;
 }
 
 @keyframes slideInUp {
