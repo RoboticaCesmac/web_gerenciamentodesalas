@@ -153,4 +153,4 @@ reservation = Reservation.objects.create(
 5. Abra um Pull Request
 
 ## Licença
-Este projeto está licenciado sob a licença MIT - veja o arquivo LICENSE para detalhes.
+sem licença no momento
