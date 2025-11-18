@@ -24,26 +24,34 @@ export interface Reservation {
   space_name: string;
   building_name: string;
   floor_name: string;
-  date: string;
-  start_time: string;
-  end_time: string;
+  date?: string;
+  start_time?: string;
+  end_time?: string;
   description?: string;
   status: 'pending' | 'confirmado' | 'canceled' | 'completed';
   user_email: string;
   capacity: number;
+  is_recurring?: boolean;
+  recurring_days?: string;
+  recurring_start_date?: string;
+  recurring_end_date?: string;
+  recurring_horarios?: string | Record<string, { inicio: string; fim: string }>;
 }
 
 export interface ReservationData {
   space: number;
-  date: string;
-  start_time: string;
-  end_time: string;
+  date?: string;
+  start_time?: string;
+  end_time?: string;
   description?: string;
   status?: string;
   is_recurring?: boolean;
   recurring_days?: string[];
   recurring_start_date?: string;
   recurring_end_date?: string;
+  recurring_horarios?: Record<string, { inicio: string; fim: string }>;
+  phone: string;
+  course: string;
 }
 
 export interface StepContent {

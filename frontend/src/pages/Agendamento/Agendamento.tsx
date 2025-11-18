@@ -1,3 +1,27 @@
+/*
+===========================================
+  GLOSSÁRIO - ESTRUTURA DO ARQUIVO
+===========================================
+Linhas 1-50:      Imports e Constantes
+Linhas 51-100:    Interfaces de Tipos
+Linhas 101-200:   Componente Agendamento - Declaração e Estados
+Linhas 201-300:   Estados de Validação e UI
+Linhas 301-400:   Funções de Disponibilidade
+Linhas 401-500:   Funções de Navegação e Steps
+Linhas 501-600:   Funções de Edição e Cancelamento
+Linhas 601-700:   Funções Auxiliares (formatação, mapeamento)
+Linhas 701-800:   useEffect - Carregamento Inicial
+Linhas 801-900:   useEffect - Reações a Mudanças
+Linhas 901-1000:  JSX - Header e Navegação
+Linhas 1001-1100: JSX - Meus Agendamentos
+Linhas 1101-1200: JSX - Histórico de Agendamento
+Linhas 1201-1400: JSX - Novo Agendamento (Formulário)
+Linhas 1401-1600: JSX - Calendário e Steps
+Linhas 1601-1700: JSX - Rodapé e Confirmações
+Linhas 1701+:     Funções Utilitárias e Export
+===========================================
+*/
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Agendamento.css';
@@ -31,6 +55,8 @@ import {
     checkAvailability
 } from '../../services/api';
 import type { 
+    Building,
+    Floor,
     Space, 
     Reservation, 
     ReservationData 
@@ -60,7 +86,15 @@ interface UnavailableTime {
 
 interface DayStatus {
   date: string;
-  status: 'disponivel' | 'ocupado' | 'selecionado';
+  status: 'disponivel' | 'ocupado' | 'ocupado-recorrente' | 'selecionado';
+  reservation?: {
+    user_name: string;
+    user_email: string;
+    phone?: string;
+    course?: string;
+    start_time?: string;
+    end_time?: string;
+  } | null;
 }
 
 type AgendamentoStep = 'campus' | 'andar' | 'sala' | 'confirmacao' | 'resumo' | 'sucesso';
@@ -145,10 +179,13 @@ export const Agendamento: React.FC = () => {
     }
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [isConclusion, setIsConclusion] = useState(false);
+
 
   // Novos estados para disponibilidade
   const [dayStatuses, setDayStatuses] = useState<DayStatus[]>([]);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [hoveredDay, setHoveredDay] = useState<string | null>(null);
 
   const novoAgendamentoRef = useRef<HTMLDivElement>(null);
 
@@ -183,7 +220,17 @@ export const Agendamento: React.FC = () => {
           navigate('/login');
           return;
         }
-        setUserProfile(JSON.parse(storedProfile));
+        try {
+          const parsedProfile = JSON.parse(storedProfile);
+          setUserProfile(parsedProfile);
+        } catch (parseError) {
+          console.error('Invalid stored profile JSON:', parseError);
+          console.error('Stored value:', storedProfile);
+          localStorage.removeItem('userProfile');
+          localStorage.removeItem('token');
+          navigate('/login');
+          return;
+        }
 
         // Load buildings
         const buildingsData = await getBuildings();
@@ -271,86 +318,111 @@ export const Agendamento: React.FC = () => {
 };
 
   // Função para verificar disponibilidade de um dia específico
-  const checkDayAvailability = async (date: Date) => {
-    if (!selectedValues.sala || !timeRange.start || !timeRange.end) {
-        return 'disponivel';
-    }
+const checkDayAvailability = async (date: Date) => {
+  if (!selectedValues.sala || !timeRange.start || !timeRange.end) {
+      return { status: 'disponivel', reservation: null };
+  }
 
-    try {
-        const spaceId = parseInt(selectedValues.sala);
-        if (isNaN(spaceId)) {
-            return 'disponivel';
-        }
+  try {
+      const spaceId = parseInt(selectedValues.sala);
+      if (isNaN(spaceId)) {
+          return { status: 'disponivel', reservation: null };
+      }
 
-        const dateStr = format(date, 'yyyy-MM-dd');
-        const startTime = timeRange.start;
-        const endTime = timeRange.end;
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const startTime = timeRange.start;
+      const endTime = timeRange.end;
 
-        // Buscar TODAS as reservas (não apenas do usuário)
-        const allReservations = await api.get('/api/reservations/', {
-            params: { space: spaceId }
-        });
-        
-        console.log('All reservations for space:', allReservations.data);
-        
-        const reservations = allReservations.data;
+      // Buscar TODAS as reservas de TODOS os usuários (não apenas do usuário logado)
+      const allReservations = await api.get('/api/reservations/all_reservations/', {
+          params: { space: spaceId }
+      });
+      
+      console.log('All reservations for space:', allReservations.data);
+      
+      const reservations = allReservations.data;
 
         // Verificar conflitos normais (reservas únicas)
-        const hasTimeConflict = reservations?.some((res: any) => {
-            if (res.is_recurring) return false;
-            if (!res.date) return false;
-            
-            const resDate = format(new Date(res.date), 'yyyy-MM-dd');
-            if (resDate !== dateStr) return false;
-            
-            const resStart = res.start_time?.substring(0, 5) || '';
-            const resEnd = res.end_time?.substring(0, 5) || '';
-            
-            // Verifica sobreposição de horários
-            return !(endTime <= resStart || startTime >= resEnd);
-        });
+      const conflictingRes = reservations?.find((res: any) => {
+          if (res.is_recurring) return false;
+          if (!res.date) return false;
+          if (res.status !== 'confirmado') return false; // Só contar se confirmada
+          
+          const resDate = format(new Date(res.date), 'yyyy-MM-dd');
+          if (resDate !== dateStr) return false;
+          
+          const resStart = res.start_time?.substring(0, 5) || '';
+          const resEnd = res.end_time?.substring(0, 5) || '';
+          
+          // Verifica sobreposição de horários
+          return !(endTime <= resStart || startTime >= resEnd);
+      });
 
-        if (hasTimeConflict) {
-            console.log(`Conflito encontrado no dia ${dateStr}`);
-            return 'ocupado';
-        }
+      if (conflictingRes) {
+          console.log(`Conflito encontrado no dia ${dateStr}`);
+          const userName = conflictingRes.user_email?.split('@')[0] || 'Usuário';
+          return {
+              status: 'ocupado', // Reserva única
+              reservation: {
+                  user_name: userName,
+                  user_email: conflictingRes.user_email,
+                  phone: conflictingRes.phone || 'Não informado',
+                  course: conflictingRes.course || 'Não informado',
+                  start_time: conflictingRes.start_time?.substring(0, 5) || '',
+                  end_time: conflictingRes.end_time?.substring(0, 5) || ''
+              }
+          };
+      }
 
-        // Verificar conflitos com recorrências
-        const hasRecurringConflict = reservations?.some((res: any) => {
-            if (!res.is_recurring) return false;
-            if (!res.recurring_days) return false;
-            
-            // Verificar se a data está dentro do período de recorrência
-            const startDateRecurring = new Date(res.recurring_start_date);
-            const endDateRecurring = new Date(res.recurring_end_date);
-            
-            if (date < startDateRecurring || date > endDateRecurring) return false;
-            
-            // Verificar se o dia da semana está nos dias recorrentes
-            const dayOfWeek = date.getDay();
-            const dayMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
-            const dayCode = dayMap[dayOfWeek as keyof typeof dayMap];
-            
-            if (!res.recurring_days.includes(dayCode)) return false;
-            
-            const resStart = res.start_time?.substring(0, 5) || '';
-            const resEnd = res.end_time?.substring(0, 5) || '';
-            
-            // Verifica sobreposição de horários
-            return !(endTime <= resStart || startTime >= resEnd);
-        });
+       // Verificar conflitos com recorrências
+      const recurringConflict = reservations?.find((res: any) => {
+          if (!res.is_recurring) return false;
+          if (!res.recurring_days) return false;
+          if (res.status !== 'confirmado') return false; // Só contar se confirmada
+          
+          // Verificar se a data está dentro do período de recorrência
+          const startDateRecurring = new Date(res.recurring_start_date);
+          const endDateRecurring = new Date(res.recurring_end_date);
+          
+          if (date < startDateRecurring || date > endDateRecurring) return false;
+          
+          // Verificar se o dia da semana está nos dias recorrentes
+          const dayOfWeek = date.getDay();
+          const dayMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+          const dayCode = dayMap[dayOfWeek as keyof typeof dayMap];
+          
+          if (!res.recurring_days.includes(dayCode)) return false;
+          
+          const resStart = res.start_time?.substring(0, 5) || '';
+          const resEnd = res.end_time?.substring(0, 5) || '';
+          
+          // Verifica sobreposição de horários
+          return !(endTime <= resStart || startTime >= resEnd);
+      });
 
-        if (hasRecurringConflict) {
-            console.log(`Conflito recorrente encontrado no dia ${dateStr}`);
-            return 'ocupado-recorrente';
-        }
-        
-        return 'disponivel';
-    } catch (err) {
-        console.error('Error checking availability:', err);
-        return 'disponivel';
-    }
-  };
+      if (recurringConflict) {
+          console.log(`Conflito recorrente encontrado no dia ${dateStr}`);
+          const userName = recurringConflict.user_email?.split('@')[0] || 'Usuário';
+          return {
+              status: 'ocupado-recorrente', // Mantém como 'ocupado-recorrente'
+              reservation: {
+                  user_name: userName,
+                  user_email: recurringConflict.user_email,
+                  phone: recurringConflict.phone || 'Não informado',
+                  course: recurringConflict.course || 'Não informado',
+                  start_time: recurringConflict.start_time?.substring(0, 5) || '',
+                  end_time: recurringConflict.end_time?.substring(0, 5) || ''
+              }
+          };
+      }
+      
+      return { status: 'disponivel', reservation: null };
+  } catch (err) {
+      console.error('Error checking availability:', err);
+      return { status: 'disponivel', reservation: null };
+  }
+};
+
 
   // Função para carregar disponibilidade do mês atual
   const loadMonthAvailability = async () => {
@@ -374,23 +446,25 @@ export const Agendamento: React.FC = () => {
       if (date < today) {
         newDayStatuses.push({
           date: format(date, 'yyyy-MM-dd'),
-          status: 'ocupado'
+          status: 'ocupado',
+          reservation: null
         });
         continue;
       }
 
       try {
-        const status = await checkDayAvailability(date);
+        const result = await checkDayAvailability(date);
         
         // Log para debug
         console.log(`Checking availability for ${format(date, 'yyyy-MM-dd')}:`, {
           timeRange,
-          status
+          result
         });
         
         newDayStatuses.push({
           date: format(date, 'yyyy-MM-dd'),
-          status
+          status: result.status as 'disponivel' | 'ocupado' | 'ocupado-recorrente' | 'selecionado',
+          reservation: result.reservation || undefined
         });
       } catch (error) {
         console.error(`Error checking day ${date.toLocaleDateString()}:`, error);
@@ -402,21 +476,32 @@ export const Agendamento: React.FC = () => {
   };
 
   // Atualizar a função getDayClassName
-  const getDayClassName = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    
-    if (selectedDate.date && format(selectedDate.date, 'yyyy-MM-dd') === dateStr) {
-      return 'selecionado';
-    }
+const getDayClassName = (date: Date) => {
+  // Verificar se a data é válida
+  if (!date || isNaN(date.getTime())) {
+    return 'ocupado';
+  }
 
-    const dayStatus = dayStatuses.find(d => d.date === dateStr);
-    
-    if (!dayStatus && date >= new Date()) {
-      return 'disponivel';
+  const dateStr = format(date, 'yyyy-MM-dd');
+  
+  if (selectedDate.date && !isNaN(selectedDate.date.getTime())) {
+    try {
+      if (format(selectedDate.date, 'yyyy-MM-dd') === dateStr) {
+        return 'selecionado';
+      }
+    } catch (e) {
+      console.error('Error formatting selected date:', e);
     }
+  }
 
-    return dayStatus?.status || 'ocupado';
-  };
+   const dayStatus = dayStatuses.find(d => d.date === dateStr);
+  
+  if (!dayStatus && date >= new Date()) {
+    return 'disponivel';
+  }
+
+  return dayStatus?.status || 'ocupado';
+};
 
   // Carregar disponibilidade quando a sala ou mês mudar
   useEffect(() => {
@@ -434,7 +519,17 @@ export const Agendamento: React.FC = () => {
     }
 
     // Carrega todos os dados dummy de uma vez
-    setUserProfile(JSON.parse(storedProfile));
+    try {
+      const parsedProfile = JSON.parse(storedProfile);
+      setUserProfile(parsedProfile);
+    } catch (parseError) {
+      console.error('Invalid stored profile JSON:', parseError);
+      console.error('Stored value:', storedProfile);
+      localStorage.removeItem('userProfile');
+      localStorage.removeItem('token');
+      navigate('/login');
+      return;
+    }
     setBuildings(dummyBuildings);
     
     // Filtra as reservas para mostrar apenas as não canceladas/completadas em "Meus Agendamentos"
@@ -483,8 +578,9 @@ export const Agendamento: React.FC = () => {
     try {
       setShowNovoAgendamento(true);
       setAgendamentoStep('andar');
-      setIsEditing(true); // Adicione este estado
-
+      setIsEditing(true);
+      
+      // Passo 1: Setar campus
       setSelectedValues({
         campus: reservation.building_name,
         andar: '',
@@ -493,48 +589,137 @@ export const Agendamento: React.FC = () => {
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Aqui vamos usar o floor_name que veio da reserva
-      const floorName = reservation.floor_name || reservation.space_name.split(' ')[0];
+      // Passo 2: Setar andar (floor_name)
+      const floorName = reservation.floor_name;
       
       setSelectedValues(prev => ({
         ...prev,
-        andar: floorName
+        andar: floorName,
+        sala: ''
       }));
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      // Passo 3: Setar sala (space_id como string)
       setSelectedValues(prev => ({
         ...prev,
-        andar: floorName,
-        sala: reservation.space_name
+        sala: reservation.space.toString() // Usar space ID, não space_name
       }));
 
-      const startDate = new Date(reservation.start_datetime);
-      const endDate = new Date(reservation.end_datetime);
+      // Verificar se é recorrente
+      const isRecurring = reservation.is_recurring || false;
 
-      setSelectedDate({
-        date: startDate,
-        isAvailable: true
-      });
+      if (isRecurring && reservation.recurring_horarios) {
+        // Para reservas recorrentes, carregar os horários por dia
+        const recurringDays = reservation.recurring_days 
+          ? reservation.recurring_days.split(',').map(d => d.trim())
+          : [];
 
-      setTimeRange({
-        start: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        end: endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
+        // Parsing dos horários recorrentes
+        let recurringHorarios = {
+          seg: { inicio: '', fim: '' },
+          ter: { inicio: '', fim: '' },
+          qua: { inicio: '', fim: '' },
+          qui: { inicio: '', fim: '' },
+          sex: { inicio: '', fim: '' },
+          sab: { inicio: '', fim: '' },
+          dom: { inicio: '', fim: '' }
+        };
 
-      setBookingDetails({
-        campus: reservation.building_name,
-        andar: floorName,
-        sala: reservation.space_name,
-        data: startDate.toLocaleDateString(),
-        horario: {
-          inicio: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          fim: endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        },
-        curso: reservation.title || '',
-        telefone: '',
-        observacao: reservation.description || ''
-      });
+        try {
+          const horariosData = typeof reservation.recurring_horarios === 'string'
+            ? JSON.parse(reservation.recurring_horarios)
+            : reservation.recurring_horarios;
+          
+          // Garantir que os horários estejam em formato HH:MM
+          const formattedHorarios: { [key: string]: { inicio: string; fim: string } } = {};
+          for (const [day, times] of Object.entries(horariosData)) {
+            if (times && typeof times === 'object') {
+              formattedHorarios[day] = {
+                inicio: (times as any).inicio?.substring(0, 5) || '',
+                fim: (times as any).fim?.substring(0, 5) || ''
+              };
+            }
+          }
+          recurringHorarios = { ...recurringHorarios, ...formattedHorarios };
+        } catch (e) {
+          console.error('Erro ao parsear recurring_horarios:', e);
+        }
+
+        setBookingDetails({
+          campus: reservation.building_name,
+          andar: floorName,
+          sala: reservation.space_name,
+          data: `${reservation.recurring_start_date || ''} até ${reservation.recurring_end_date || ''}`,
+          horario: { inicio: '', fim: '' },
+          curso: '',
+          telefone: '',
+          observacao: reservation.description || '',
+          isRecurring: true,
+          recurringDays: recurringDays,
+          recurringStartDate: reservation.recurring_start_date || '',
+          recurringEndDate: reservation.recurring_end_date || '',
+          recurringHorarios: recurringHorarios
+        });
+
+        // Não definir date/timeRange para recorrente
+        setSelectedDate({
+          date: null,
+          isAvailable: true
+        });
+
+        setTimeRange({
+          start: '',
+          end: ''
+        });
+      } else {
+        // Para reservas normais
+        const date = new Date(reservation.date || new Date());
+        // Formatar horários para HH:MM (remover :SS se existir)
+        const startTime = reservation.start_time 
+          ? reservation.start_time.substring(0, 5) 
+          : '09:00';
+        const endTime = reservation.end_time 
+          ? reservation.end_time.substring(0, 5) 
+          : '10:00';
+
+        setSelectedDate({
+          date: date,
+          isAvailable: true
+        });
+
+        setTimeRange({
+          start: startTime,
+          end: endTime
+        });
+
+        setBookingDetails({
+          campus: reservation.building_name,
+          andar: floorName,
+          sala: reservation.space_name,
+          data: date.toLocaleDateString(),
+          horario: {
+            inicio: startTime,
+            fim: endTime
+          },
+          curso: '',
+          telefone: '',
+          observacao: reservation.description || '',
+          isRecurring: false,
+          recurringDays: [],
+          recurringStartDate: '',
+          recurringEndDate: '',
+          recurringHorarios: {
+            seg: { inicio: '', fim: '' },
+            ter: { inicio: '', fim: '' },
+            qua: { inicio: '', fim: '' },
+            qui: { inicio: '', fim: '' },
+            sex: { inicio: '', fim: '' },
+            sab: { inicio: '', fim: '' },
+            dom: { inicio: '', fim: '' }
+          }
+        });
+      }
 
       scrollToBottom();
 
@@ -595,6 +780,8 @@ export const Agendamento: React.FC = () => {
                         const hasRecurringConflict = availability.reservations?.some((res: any) => {
                             if (!res.is_recurring) return false;
                             // Verificar se o dia selecionado está nos dias recorrentes
+                            if (!selectedDate.date) return false;
+                            
                             const dayOfWeek = selectedDate.date.getDay();
                             const dayMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
                             const dayCode = dayMap[dayOfWeek as keyof typeof dayMap];
@@ -630,7 +817,9 @@ export const Agendamento: React.FC = () => {
                         recurring_days: bookingDetails.recurringDays,
                         recurring_start_date: bookingDetails.recurringStartDate,
                         recurring_end_date: bookingDetails.recurringEndDate,
-                        recurring_horarios: bookingDetails.recurringHorarios
+                        recurring_horarios: bookingDetails.recurringHorarios,
+                        phone: bookingDetails.telefone, // ADICIONE ESTE CAMPO
+                        course: bookingDetails.curso    // ADICIONE ESTE CAMPO
                     };
                 } else {
                     // Reserva única
@@ -640,7 +829,9 @@ export const Agendamento: React.FC = () => {
                         start_time: timeRange.start,
                         end_time: timeRange.end,
                         description: bookingDetails.observacao,
-                        status: 'pending'
+                        status: 'pending',
+                        phone: bookingDetails.telefone, // ADICIONE ESTE CAMPO
+                        course: bookingDetails.curso    // ADICIONE ESTE CAMPO
                     };
                 }
 
@@ -652,6 +843,7 @@ export const Agendamento: React.FC = () => {
                 setHistorico(prev => [...prev, newReservation]);
                 
                 setAgendamentoStep('sucesso');
+                setIsConclusion(true);
                 setAnimatingStep(null);
             } catch (error: any) {
                 console.error('Error creating reservation:', error);
@@ -829,22 +1021,43 @@ export const Agendamento: React.FC = () => {
   const handleCancelConfirm = async () => {
     if (reservationToCancel) {
       try {
-        // await cancelReservation(reservationToCancel);
+        // Enviar request para cancelar a reserva no backend
+        console.log(`Cancelando reserva ID: ${reservationToCancel}`);
+        const result = await cancelReservation(reservationToCancel);
+        console.log('Resultado do cancelamento:', result);
         
-        const canceledReservation = reservations.find(r => r.id === reservationToCancel);
-        if (canceledReservation) {
-          // Atualizar o status localmente
-          const updatedReservations = reservations.map(r => 
-            r.id === reservationToCancel 
-              ? { ...r, status: 'canceled' as const } 
-              : r
+        // Atualizar o status localmente após sucesso no backend
+        const updatedReservations = reservations.map(r => 
+          r.id === reservationToCancel 
+            ? { ...r, status: 'canceled' as const } 
+            : r
+        );
+        setReservations(updatedReservations);
+        
+        // Atualizar também o histórico com o novo status
+        const updatedHistorico = historico.map(r =>
+          r.id === reservationToCancel
+            ? { ...r, status: 'canceled' as const }
+            : r
+        );
+        setHistorico(updatedHistorico);
+        
+        // Recarregar as reservas do backend para garantir sincronização
+        try {
+          const freshReservations = await getUserReservations();
+          setHistorico(freshReservations);
+          const activeReservations = freshReservations.filter(
+            (res: any) => res.status !== 'canceled' && res.status !== 'completed'
           );
-          setReservations(updatedReservations);
-          setHistorico(updatedReservations);
+          setReservations(activeReservations);
+        } catch (error) {
+          console.error('Erro ao recarregar reservas:', error);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Erro ao cancelar reserva:', error);
-        setError('Erro ao cancelar a reserva');
+        console.error('Response status:', error.response?.status);
+        console.error('Response data:', error.response?.data);
+        setError(error.response?.data?.detail || 'Erro ao cancelar a reserva');
       }
     }
     setShowCancelConfirmation(false);
@@ -863,7 +1076,17 @@ export const Agendamento: React.FC = () => {
       navigate('/login');
       return;
     }
-    setUserProfile(JSON.parse(storedProfile));
+    try {
+      const parsedProfile = JSON.parse(storedProfile);
+      setUserProfile(parsedProfile);
+    } catch (parseError) {
+      console.error('Invalid stored profile JSON:', parseError);
+      console.error('Stored value:', storedProfile);
+      localStorage.removeItem('userProfile');
+      localStorage.removeItem('token');
+      navigate('/login');
+      return;
+    }
     setBuildings(dummyBuildings);
     setReservations(dummyReservations);
     setHistorico(dummyReservations);
@@ -957,27 +1180,10 @@ export const Agendamento: React.FC = () => {
     <div className="agendamento-container">
       <header className="header">
         <div className="blue-bar">
-          <button className="logout-button" onClick={handleLogout}>
-            <img src={LogoutIcon} alt="Sair" />
-          </button>
+          
         </div>
         <div className="white-bar">
           <img src={logoImg} alt="Logo" className="logo" />
-          <div className="user-bar">
-            <img 
-              src={userProfile?.profile_photo || userImg} 
-              alt="Perfil" 
-              className="user-photo" 
-            />
-            <div className="user-info">
-              <span className="welcome">Bem-vindo!</span>
-              <span className="username">{userProfile ? formatUsername(userProfile.username) : 'Carregando...'}</span>
-            </div>
-            <button className="add-button" onClick={handleAddClick}>
-              <img src={PlusIcon} alt="Adicionar" className="plus-icon" />
-              <span className="desktop-only">Agendar</span>
-            </button>
-          </div>
           <button className="logout-button desktop-only" onClick={handleLogout}>
             <img src={LogoutIcon} alt="Sair" />
           </button>
@@ -985,6 +1191,22 @@ export const Agendamento: React.FC = () => {
       </header>
 
       <main className="main-content">
+        <div className="user-bar">
+          <img 
+            src={userProfile?.profile_photo || userImg} 
+            alt="Perfil" 
+            className="user-photo" 
+          />
+          <div className="user-info">
+            <span className="welcome">Bem-vindo!</span>
+            <span className="username">{userProfile ? formatUsername(userProfile.username) : 'Carregando...'}</span>
+          </div>
+          <button className="add-button" onClick={handleAddClick}>
+            <img src={PlusIcon} alt="Adicionar" className="plus-icon" />
+            <span className="desktop-only">Agendar</span>
+          </button>
+        </div>
+
         <section className="proximos-agendamentos">
           <h2>Meus agendamentos</h2>
           {loading ? (
@@ -995,7 +1217,67 @@ export const Agendamento: React.FC = () => {
             <>
               <div className="agendamentos-list">
                 {reservations
-                    .filter(res => res && res.id && res.status !== 'canceled' && res.status !== 'completed')
+                    .filter(res => res && res.id && res.status === 'confirmado')
+                    .sort((a, b) => {
+                        try {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            
+                            // Helper function para calcular próxima ocorrência de recorrência
+                            const getNextRecurringDate = (recurringDaysStr: string | undefined): Date => {
+                                if (!recurringDaysStr) return new Date(today);
+                                
+                                const currentDayOfWeek = today.getDay();
+                                const daysMap: { [key: number]: string } = {
+                                    0: 'dom',
+                                    1: 'seg',
+                                    2: 'ter',
+                                    3: 'qua',
+                                    4: 'qui',
+                                    5: 'sex',
+                                    6: 'sab'
+                                };
+                                const currentDayStr = daysMap[currentDayOfWeek];
+                                const recurringDays = recurringDaysStr.split(',').map(d => d.trim());
+                                
+                                // Se hoje é um dia recorrente, retorna hoje
+                                if (recurringDays.includes(currentDayStr)) {
+                                    return new Date(today);
+                                }
+                                
+                                // Senão, procura o próximo dia recorrente (até 6 dias à frente)
+                                for (let i = 1; i <= 6; i++) {
+                                    const futureDate = new Date(today);
+                                    futureDate.setDate(futureDate.getDate() + i);
+                                    const futureDayStr = daysMap[futureDate.getDay()];
+                                    if (recurringDays.includes(futureDayStr)) {
+                                        return futureDate;
+                                    }
+                                }
+                                
+                                // Se não encontrar em 6 dias, retorna 7 dias à frente
+                                const fallbackDate = new Date(today);
+                                fallbackDate.setDate(fallbackDate.getDate() + 7);
+                                return fallbackDate;
+                            };
+                            
+                            // Determinar data de comparação para A
+                            const dateA = a.is_recurring 
+                                ? getNextRecurringDate(a.recurring_days)
+                                : new Date(a.date || 0);
+                            
+                            // Determinar data de comparação para B
+                            const dateB = b.is_recurring 
+                                ? getNextRecurringDate(b.recurring_days)
+                                : new Date(b.date || 0);
+                            
+                            // Ordenar por proximidade (mais próximo em cima)
+                            return dateA.getTime() - dateB.getTime();
+                        } catch (error) {
+                            console.error('Erro ao ordenar agendamentos:', error);
+                            return 0;
+                        }
+                    })
                     .slice(0, mostrarTodosAgendamentos ? undefined : 2)
                     .map(reservation => {
                         if (!reservation) return null;
@@ -1042,7 +1324,7 @@ export const Agendamento: React.FC = () => {
                         );
                     })}
               </div>
-              {reservations.length > 2 && (
+              {reservations.filter(res => res && res.id && res.status === 'confirmado').length > 2 && (
                 <button
                   className="ver-mais"
                   onClick={() => setMostrarTodosAgendamentos(!mostrarTodosAgendamentos)}
@@ -1116,7 +1398,12 @@ export const Agendamento: React.FC = () => {
 
         {showNovoAgendamento && (
           <section className="novo-agendamento" ref={novoAgendamentoRef}>
-            <h2>{isEditing ? 'Editar Agendamento' : 'Novo Agendamento'}</h2>
+            <h2>
+              {isEditing && isConclusion ? 'Edição Concluída' :
+              isEditing && !isConclusion ? 'Editar Agendamento' :
+              !isEditing && isConclusion ? 'Agendamento Pendente!' :
+              'Novo Agendamento'}
+            </h2>
             {agendamentoStep === 'campus' ? (
               <>
                 <div className="filtro">
@@ -1259,10 +1546,16 @@ export const Agendamento: React.FC = () => {
               <DatePicker
                 selected={selectedDate.date}
                 onChange={(date: Date | null) => {
-                  if (date) {
+                if (date) {
+                  const dateStr = format(date, 'yyyy-MM-dd');
+                  const dayStatus = dayStatuses.find(d => d.date === dateStr);
+                  // Permitir seleção apenas se estiver disponível
+                  // Impedir seleção tanto para 'ocupado' quanto para 'ocupado-recorrente'
+                  if (dayStatus?.status === 'disponivel') {
                     handleDateSelect(date);
                   }
-                }}
+                }
+              }}
                 inline
                 locale={ptBR}
                 minDate={new Date()}
@@ -1270,16 +1563,53 @@ export const Agendamento: React.FC = () => {
                 monthsShown={1}
                 fixedHeight
                 openToDate={currentDate}
-                filterDate={(date) => {
-                  const dateStr = format(date, 'yyyy-MM-dd');
-                  const dayStatus = dayStatuses.find(d => d.date === dateStr);
-                  return dayStatus?.status !== 'ocupado' && dayStatus?.status !== 'ocupado-recorrente';
-                }}
+                filterDate={() => true} // Mostrar todos os dias
                 dayClassName={(date) => {
                   if (date < new Date()) {
                     return 'ocupado';
                   }
                   return getDayClassName(date);
+                }}
+                renderDayContents={(day, date) => {
+                  const dateStr = format(date, 'yyyy-MM-dd');
+                  const dayStatus = dayStatuses.find(d => d.date === dateStr);
+                  const isOccupied = dayStatus?.status === 'ocupado' || dayStatus?.status === 'ocupado-recorrente';
+                  
+                  return (
+                    <div
+                      className="day-content"
+                      onMouseEnter={() => {
+                        console.log('Mouse enter on day:', dateStr, 'isOccupied:', isOccupied);
+                        isOccupied && setHoveredDay(dateStr);
+                      }}
+                      onMouseLeave={() => {
+                        console.log('Mouse leave on day:', dateStr);
+                        setHoveredDay(null);
+                      }}
+                      style={{
+                        cursor: isOccupied ? 'help' : 'pointer',
+                        pointerEvents: 'auto'
+                      }}
+                    >
+                      <span>{day}</span>
+                      {hoveredDay === dateStr && dayStatus?.reservation && (
+                        <div className="reservation-tooltip">
+                          <div className="tooltip-item">
+                            <strong>Usuário:</strong> {dayStatus.reservation.user_name}
+                          </div>
+                          <div className="tooltip-item">
+                            <strong>Horário:</strong> {dayStatus.reservation.start_time && dayStatus.reservation.end_time ? `${dayStatus.reservation.start_time} - ${dayStatus.reservation.end_time}` : 'N/A'}
+                          </div>
+                          <div className="tooltip-item">
+                            <strong>Telefone:</strong> {dayStatus.reservation.phone || 'N/A'}
+                          </div>
+                          <div className="tooltip-item">
+                            <strong>Curso:</strong> {dayStatus.reservation.course || 'N/A'}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
                 }}
                 renderCustomHeader={({ date }) => (
                   <div className="calendar-header">
@@ -1362,7 +1692,7 @@ export const Agendamento: React.FC = () => {
 
           {bookingDetails.recurringDays.map(day => (
             <div key={day} className="form-group">
-              <label>Horário para {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].indexOf(day)]}</label>
+              <label>Horário para {['Segunda-Feira', 'Terça-Feira', 'Quata-Feira', 'Quinta-Feira', 'Sexta-Feira', 'Sabado', 'Domingo'][['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].indexOf(day)]}</label>
               <div className="time-inputs">
                 <div className="time-group">
                   <label>Começo</label>
@@ -1604,15 +1934,14 @@ export const Agendamento: React.FC = () => {
     </div>
   </div>
 ) : agendamentoStep === 'sucesso' ? (
-  <div className={`novo-agendamento sucesso-agendamento ${animatingStep === 'sucesso' ? 'animating-out' : ''}`}>
+  <div className="sucesso-agendamento">
     <div className="sucesso-content">
-      <div className="big-check-icon">✓</div>
-      <h2>Agendamento Pendente!</h2>
+       <img src={BigCheckIcon} alt="Sucesso" className="big-check-icon" />
       <p className="sucesso-message">
         Seu pedido de agendamento será analisado!
       </p>
       <p className="sucesso-submessage">
-        Mandaremos uma mensagem para <a href="#">avisar da sua reserva</a>
+        Mandaremos uma mensagem para avisar da sua reserva
       </p>
     </div>
 

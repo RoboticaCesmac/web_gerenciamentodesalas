@@ -89,6 +89,8 @@ export interface ReservationData {
   recurring_horarios?: {
     [key: string]: { inicio: string; fim: string };
   };
+  phone?: string; // ADICIONE ESTE CAMPO
+  course?: string; // ADICIONE ESTE CAMPO
 }
 
 export const createReservation = async (data: ReservationData) => {
@@ -100,7 +102,9 @@ export const createReservation = async (data: ReservationData) => {
       space: data.space,
       description: data.description || '',
       status: 'pending',
-      is_recurring: data.is_recurring || false
+      is_recurring: data.is_recurring || false,
+      phone: data.phone || '', // ADICIONE ESTE CAMPO
+      course: data.course || '' // ADICIONE ESTE CAMPO
     };
 
     if (data.is_recurring) {
@@ -176,10 +180,22 @@ export const checkAvailability = async (spaceId: number, date: string) => {
 };
 
 export const cancelReservation = async (reservationId: number) => {
-    const response = await api.patch(`/api/reservations/${reservationId}/`, {
-        status: 'canceled'
-    });
-    return response.data;
+    try {
+        console.log(`Sending PATCH request to /api/reservations/${reservationId}/`);
+        console.log('Payload: { status: "canceled" }');
+        
+        const response = await api.patch(`/api/reservations/${reservationId}/`, {
+            status: 'canceled'
+        });
+        
+        console.log('Cancel response status:', response.status);
+        console.log('Cancel response data:', response.data);
+        return response.data;
+    } catch (error: any) {
+        console.error('Cancel error status:', error.response?.status);
+        console.error('Cancel error data:', error.response?.data);
+        throw error;
+    }
 };
 
 export { api };
