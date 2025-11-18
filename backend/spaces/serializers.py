@@ -34,7 +34,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             'date', 'start_time', 'end_time', 'description', 'status',
             'user_email', 'user', 'capacity', 'is_recurring',
             'recurring_days', 'recurring_start_date', 'recurring_end_date',
-            'recurring_times',
+            'recurring_times', 'phone', 'course',
             'monday_start', 'monday_end',
             'tuesday_start', 'tuesday_end',
             'wednesday_start', 'wednesday_end',
@@ -43,12 +43,19 @@ class ReservationSerializer(serializers.ModelSerializer):
             'saturday_start', 'saturday_end',
             'sunday_start', 'sunday_end'
         ]
-        read_only_fields = ['user', 'id', 'status']  # status como read-only
+        read_only_fields = ['user', 'id']
 
     def get_floor_name(self, obj):
         return getattr(obj.space.floor_name, 'name', 'N/A') if obj.space.floor_name else 'N/A'
 
     def validate(self, data):
+        # Se é uma atualização parcial (PATCH), não validar campos obrigatórios
+        # Apenas validar se o objeto está sendo criado (POST) ou atualizado completamente (PUT)
+        if self.instance is not None:
+            # Atualização (PUT ou PATCH) - não forçar validação de todos os campos
+            return data
+        
+        # Validação para criação (POST)
         # Se is_recurring, validar campos recorrentes
         if data.get('is_recurring'):
             if not data.get('recurring_days'):

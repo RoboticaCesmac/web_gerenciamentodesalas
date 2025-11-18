@@ -21,6 +21,7 @@ from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from rest_framework import viewsets
+from rest_framework.decorators import action
 
 @staff_member_required
 def get_floor_plan(request):
@@ -194,6 +195,27 @@ class ReservationViewSet(viewsets.ModelViewSet):
             'user'
         ).filter(user=self.request.user).order_by('-date', '-start_time')
 
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def all_reservations(self, request):
+        """
+        Retorna TODAS as reservas de todos os usuários (não apenas do usuário logado).
+        Útil para o calendário mostrar a disponibilidade baseado em todas as reservas.
+        """
+        reservations = Reservation.objects.select_related(
+            'space',
+            'space__building',
+            'space__floor_name',
+            'user'
+        ).all().order_by('-date', '-start_time')
+        
+        # Aplicar filtros opcionais
+        space_id = request.query_params.get('space')
+        if space_id:
+            reservations = reservations.filter(space_id=space_id)
+        
+        serializer = self.get_serializer(reservations, many=True)
+        return Response(serializer.data)
+
     def create(self, request, *args, **kwargs):
         print("Received reservation data:", request.data)  # Debug log
         
@@ -224,3 +246,10 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Permite atualizações parciais (PATCH).
+        Útil para cancelar reservas alterando apenas o status.
+        """
+        return super().partial_update(request, *args, **kwargs)
