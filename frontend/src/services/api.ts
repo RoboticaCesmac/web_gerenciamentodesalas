@@ -180,10 +180,22 @@ export const checkAvailability = async (spaceId: number, date: string) => {
 };
 
 export const cancelReservation = async (reservationId: number) => {
-    const response = await api.patch(`/api/reservations/${reservationId}/`, {
-        status: 'canceled'
-    });
-    return response.data;
+    try {
+        console.log(`Sending PATCH request to /api/reservations/${reservationId}/`);
+        console.log('Payload: { status: "canceled" }');
+        
+        const response = await api.patch(`/api/reservations/${reservationId}/`, {
+            status: 'canceled'
+        });
+        
+        console.log('Cancel response status:', response.status);
+        console.log('Cancel response data:', response.data);
+        return response.data;
+    } catch (error: any) {
+        console.error('Cancel error status:', error.response?.status);
+        console.error('Cancel error data:', error.response?.data);
+        throw error;
+    }
 };
 
 export { api };

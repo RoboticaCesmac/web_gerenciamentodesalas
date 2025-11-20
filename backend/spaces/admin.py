@@ -88,13 +88,13 @@ class CustomReservationAdminForm(ReservationAdminForm):
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
     form = CustomReservationAdminForm
-    list_display = ('space', 'user', 'get_time_display', 'is_recurring', 'status')
+    list_display = ('space', 'user', 'phone', 'course', 'get_time_display', 'is_recurring', 'status')
     list_filter = ('space', 'user', 'is_recurring', 'status')
-    search_fields = ('space__name', 'user__username', 'description')
+    search_fields = ('space__name', 'user__username', 'description', 'phone', 'course')
 
     fieldsets = (
         ('Geral', {
-            'fields': ('space', 'user', 'description', 'status', 'is_recurring')
+            'fields': ('space', 'user', 'description', 'phone', 'course', 'status', 'is_recurring')
         }),
         ('Reserva Única', {
             'fields': ('date', 'start_time', 'end_time'),

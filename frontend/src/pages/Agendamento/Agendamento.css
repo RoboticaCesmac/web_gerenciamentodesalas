@@ -3223,7 +3223,457 @@ p {
   border-top-color: #333333;
 }
 
-@keyframes slideInUp {
+/* Divisória entre múltiplas reservas no tooltip */
+.tooltip-divider {
+  height: 1px;
+  background-color: #555555;
+  margin: 8px 0;
+}
+
+/* ===== ESTILOS DO VERIFICADOR ===== */
+
+/* Botão Verificar */
+.verificar-button {
+  background-color: #FFD700;
+  border: none;
+  border-radius: 18px;
+  padding: 0 16px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 600;
+  color: #000;
+  font-size: 14px;
+  margin-left: 8px;
+  transition: all 0.3s ease;
+}
+
+.verificar-button:hover {
+  background-color: #FFC700;
+  transform: translateY(-2px);
+}
+
+.verificar-button:active {
+  transform: translateY(0);
+}
+
+/* Modal do Verificador */
+.verificador-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.verificador-content {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: slideInUp 0.3s ease;
+}
+
+.verificador-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.verificador-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+  font-weight: 600;
+}
+
+.verificador-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #999;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.verificador-close:hover {
+  color: #333;
+}
+
+/* Dropdowns do Verificador */
+.verificador-dropdowns {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.verificador-dropdown-group {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.verificador-dropdown-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.verificador-dropdown-group select {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.verificador-dropdown-group select:hover:not(:disabled) {
+  border-color: #999;
+}
+
+.verificador-dropdown-group select:focus {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+}
+
+.verificador-dropdown-group select:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* Calendário do Verificador */
+.verificador-calendar {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.verificador-calendar .calendar-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.verificador-calendar .month-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  text-transform: capitalize;
+  flex: 1;
+  text-align: center;
+}
+
+.verificador-calendar .calendar-nav {
+  background-color: #1e3a8a;
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.verificador-calendar .calendar-nav:hover:not(:disabled) {
+  background-color: #1e40af;
+}
+
+.verificador-calendar .calendar-nav:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.verificador-calendar .calendar-grid {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Estilo do ReactDatePicker dentro do verificador */
+.verificador-datepicker {
+  width: 320px;
+  max-width: 100%;
+  font-size: 14px;
+  border: none;
+  background: white;
+  padding: 0;
+}
+
+.verificador-datepicker .react-datepicker__header {
+  background-color: white;
+  border: none;
+  padding: 0;
+  display: none;
+}
+
+.verificador-datepicker .react-datepicker__month-container {
+  width: 100%;
+}
+
+.verificador-datepicker .react-datepicker__day-names {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.verificador-datepicker .react-datepicker__day-name {
+  width: 100%;
+  text-align: center;
+  font-weight: 600;
+  color: #666;
+  padding: 8px 0;
+  font-size: 12px;
+}
+
+.verificador-datepicker .react-datepicker__month {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+}
+
+.verificador-datepicker .react-datepicker__week {
+  display: contents;
+}
+
+.verificador-datepicker .react-datepicker__day {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 500;
+  position: relative;
+}
+
+.verificador-datepicker .react-datepicker__day.disponivel {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.verificador-datepicker .react-datepicker__day.disponivel:hover {
+  background-color: #c8e6c9;
+}
+
+.verificador-datepicker .react-datepicker__day.ocupado {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.verificador-datepicker .react-datepicker__day.ocupado:hover {
+  background-color: #ffcdd2;
+}
+
+.verificador-datepicker .react-datepicker__day.ocupado-recorrente {
+  background-color: #f3e5f5;
+  color: #6a1b9a;
+}
+
+.verificador-datepicker .react-datepicker__day.ocupado-recorrente:hover {
+  background-color: #e1bee7;
+}
+
+.verificador-datepicker .react-datepicker__day--outside-month {
+  color: #ccc;
+  background-color: #fafafa;
+}
+
+/* Wrapper para o dia */
+.day-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Legenda do Verificador */
+.verificador-legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px;
+  border-top: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+}
+
+.verificador-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #333;
+}
+
+.verificador-legend .legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.verificador-legend .legend-dot.disponivel {
+  background-color: #4caf50;
+}
+
+.verificador-legend .legend-dot.ocupado {
+  background-color: #f44336;
+}
+
+.verificador-legend .legend-dot.ocupado-recorrente {
+  background-color: #9c27b0;
+}
+
+/* Loading state */
+.verificador-calendar .loading {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+  font-size: 14px;
+}
+
+/* Verificador Actions - Botão Reservar */
+.verificador-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  padding: 15px;
+  margin-top: 15px;
+  border-top: 1px solid #ddd;
+}
+
+.reservar-button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 30px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.reservar-button:hover {
+  background-color: #218838;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+  transform: translateY(-2px);
+}
+
+.reservar-button:active {
+  background-color: #1e7e34;
+  transform: translateY(0);
+}
+
+.selected-date-info {
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
+}
+
+/* Indicador de data selecionada */
+.selected-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background-color: #28a745;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Responsive - Mobile */
+@media screen and (max-width: 480px) {
+  .verificador-modal {
+    padding: 8px;
+  }
+
+  .verificador-content {
+    max-width: 100%;
+    max-height: 95vh;
+  }
+
+  .verificador-dropdowns {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .verificador-dropdown-group {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .verificar-button {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .verificador-header h3 {
+    font-size: 16px;
+  }
+
+  .verificador-datepicker .react-datepicker__day {
+    font-size: 11px;
+  }
+
+  .verificador-datepicker .react-datepicker__day-name {
+    font-size: 10px;
+    padding: 4px 0;
+  }
+}@keyframes slideInUp {
   from {
     opacity: 0;
     transform: translateY(10px);
