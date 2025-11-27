@@ -16,21 +16,26 @@ export const dummyBuildings = [
 ];
 
 export const dummyFloors = [
+  // Campus 1
   { id: 1, name: "Andar 1", building_id: 1 },
   { id: 2, name: "Andar 2", building_id: 1 },
   { id: 3, name: "Andar 3", building_id: 1 },
-  { id: 1, name: "Andar 1", building_id: 2 },
-  { id: 2, name: "Andar 2", building_id: 2 },
-  { id: 3, name: "Andar 3", building_id: 2 },
-  { id: 1, name: "Andar 1", building_id: 3 },
-  { id: 2, name: "Andar 2", building_id: 3 },
-  { id: 3, name: "Andar 3", building_id: 3 },
-  { id: 1, name: "Andar 1", building_id: 4 },
-  { id: 2, name: "Andar 2", building_id: 4 },
-  { id: 3, name: "Andar 3", building_id: 4 },
+  // Campus 2
+  { id: 4, name: "Andar 1", building_id: 2 },
+  { id: 5, name: "Andar 2", building_id: 2 },
+  { id: 6, name: "Andar 3", building_id: 2 },
+  // Campus 3
+  { id: 7, name: "Andar 1", building_id: 3 },
+  { id: 8, name: "Andar 2", building_id: 3 },
+  { id: 9, name: "Andar 3", building_id: 3 },
+  // Campus 4
+  { id: 10, name: "Andar 1", building_id: 4 },
+  { id: 11, name: "Andar 2", building_id: 4 },
+  { id: 12, name: "Andar 3", building_id: 4 },
 ];
 
 export const dummyRooms: Space[] = [
+  // Campus 1 - Andar 1
   { 
     id: 1, 
     name: "Sala 101", 
@@ -47,38 +52,42 @@ export const dummyRooms: Space[] = [
     building: 1,
     floor_name: "Andar 1"
   },
+  // Campus 2 - Andar 1
   { 
     id: 3, 
     name: "Lab 02", 
-    floor_id: 2, 
+    floor_id: 4, 
     capacity: 25,
     building: 2,
-    floor_name: "Andar 2"
+    floor_name: "Andar 1"
   },
   { 
     id: 4, 
     name: "Lab 03", 
-    floor_id: 2, 
+    floor_id: 4, 
     capacity: 25,
     building: 2,
-    floor_name: "Andar 2"
+    floor_name: "Andar 1"
   },
+  // Campus 2 - Andar 2
   { 
     id: 5, 
     name: "Sala 202", 
-    floor_id: 1, 
+    floor_id: 5, 
     capacity: 30,
     building: 2,
     floor_name: "Andar 2"
   },
+  // Campus 2 - Andar 3
   { 
     id: 6, 
     name: "Sala 303", 
-    floor_id: 2, 
+    floor_id: 6, 
     capacity: 30,
     building: 2,
     floor_name: "Andar 3"
   },
+  // Campus 1 - Andar 3
   { 
     id: 7, 
     name: "Auditório 1", 
@@ -87,18 +96,20 @@ export const dummyRooms: Space[] = [
     building: 1,
     floor_name: "Andar 3"
   },
+  // Campus 2 - Andar 3
   { 
     id: 8, 
     name: "Auditório 2", 
-    floor_id: 3, 
+    floor_id: 6, 
     capacity: 100,
     building: 2,
     floor_name: "Andar 3"
   },
+  // Campus 3 - Andar 3
   { 
     id: 9, 
     name: "Auditório 3", 
-    floor_id: 3, 
+    floor_id: 9, 
     capacity: 100,
     building: 3,
     floor_name: "Andar 3"

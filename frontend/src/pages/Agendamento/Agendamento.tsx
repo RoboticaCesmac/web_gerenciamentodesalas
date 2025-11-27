@@ -196,6 +196,194 @@ export const Agendamento: React.FC = () => {
   // Adicione o estado para selectedSpace
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null);
 
+  // Estados para o botão "Verificar" (full-day availability)
+  const [showVerificador, setShowVerificador] = useState(false);
+  const [verificadorCampus, setVerificadorCampus] = useState('');
+  const [verificadorAndar, setVerificadorAndar] = useState('');
+  const [verificadorSala, setVerificadorSala] = useState('');
+  const [verificadorSalas, setVerificadorSalas] = useState<Space[]>([]);
+  const [verificadorDayStatuses, setVerificadorDayStatuses] = useState<DayStatus[]>([]);
+  const [verificadorCurrentDate, setVerificadorCurrentDate] = useState(new Date());
+  const [verificadorLoadingAvailability, setVerificadorLoadingAvailability] = useState(false);
+  const [verificadorHoveredDay, setVerificadorHoveredDay] = useState<string | null>(null);
+  const [verificadorHoveredReservations, setVerificadorHoveredReservations] = useState<any[]>([]);
+  const [verificadorPeriodo, setVerificadorPeriodo] = useState<'matutino' | 'vesperino' | 'noturno' | ''>('');
+  const [verificadorSelectedDate, setVerificadorSelectedDate] = useState<Date | null>(null);
+
+  // Função helper para obter horários do período
+  const getPeriodoTimeRange = (periodo: string): { start: string; end: string } | null => {
+    const timeRanges: Record<string, { start: string; end: string }> = {
+      'matutino': { start: '07:00', end: '12:00' },
+      'vesperino': { start: '13:00', end: '18:00' },
+      'noturno': { start: '18:30', end: '22:00' }
+    };
+    return timeRanges[periodo] || null;
+  };
+
+  // Função para verificar se há conflito de horário
+  const hasTimeConflict = (resStart: string, resEnd: string, periodoStart: string, periodoEnd: string): boolean => {
+    // Converte strings HH:MM para minutos para facilitar comparação
+    const toMinutes = (time: string) => {
+      const [h, m] = time.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const resStartMin = toMinutes(resStart);
+    const resEndMin = toMinutes(resEnd);
+    const periodoStartMin = toMinutes(periodoStart);
+    const periodoEndMin = toMinutes(periodoEnd);
+
+    // Há conflito se os horários se sobrepõem
+    return !(resEndMin <= periodoStartMin || resStartMin >= periodoEndMin);
+  };
+
+  // Função para verificar disponibilidade de dia inteiro (sem horário específico)
+  const checkFullDayAvailability = async (date: Date, spaceId: number) => {
+    try {
+      if (isNaN(spaceId)) {
+        return { status: 'disponivel', reservations: [] };
+      }
+
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const periodoTimeRange = getPeriodoTimeRange(verificadorPeriodo);
+
+      // Buscar TODAS as reservas de TODOS os usuários para a sala via API
+      const response = await api.get('/api/reservations/all_reservations/', {
+        params: { space: spaceId }
+      });
+      
+      const reservations = Array.isArray(response.data) ? response.data : response.data.results || [];
+
+      // Filtrar reservas que afetam este dia específico
+      const dayReservations = reservations.filter((res: any) => {
+        if (res.status !== 'confirmado') return false; // Só contar confirmadas
+
+        // Se tem período selecionado, filtrar por horário
+        if (periodoTimeRange && res.start_time && res.end_time) {
+          const resStart = res.start_time.substring(0, 5);
+          const resEnd = res.end_time.substring(0, 5);
+          
+          if (!hasTimeConflict(resStart, resEnd, periodoTimeRange.start, periodoTimeRange.end)) {
+            return false;
+          }
+        }
+
+        // Verificar conflitos normais (reservas únicas)
+        if (!res.is_recurring) {
+          if (!res.date) return false;
+          const resDate = format(new Date(res.date), 'yyyy-MM-dd');
+          return resDate === dateStr;
+        }
+
+        // Verificar conflitos com recorrências
+        if (res.is_recurring && res.recurring_days) {
+          const startDateRecurring = new Date(res.recurring_start_date);
+          const endDateRecurring = new Date(res.recurring_end_date);
+          
+          if (date < startDateRecurring || date > endDateRecurring) return false;
+          
+          const dayOfWeek = date.getDay();
+          const dayMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+          const dayCode = dayMap[dayOfWeek as keyof typeof dayMap];
+          
+          return res.recurring_days.includes(dayCode);
+
+        }
+
+        return false;
+      });
+
+      // Se não houver reservas, dia está disponível
+      if (dayReservations.length === 0) {
+        return { status: 'disponivel', reservations: [] };
+      }
+
+      // Se houver reservas confirmadas neste dia (seja única ou recorrente), mostrar como ocupado
+      const hasOccupado = dayReservations.some((res: any) => !res.is_recurring);
+      const hasOcupadoRecorrente = dayReservations.some((res: any) => res.is_recurring);
+
+      const status = hasOccupado ? 'ocupado' : hasOcupadoRecorrente ? 'ocupado-recorrente' : 'disponivel';
+
+      // Formatar as informações das reservas para o tooltip
+      const formattedReservations = dayReservations.map((res: any) => ({
+        user_name: res.user_email?.split('@')[0] || 'Usuário',
+        user_email: res.user_email,
+        phone: res.phone || 'Não informado',
+        course: res.course || 'Não informado',
+        start_time: res.start_time?.substring(0, 5) || '',
+        end_time: res.end_time?.substring(0, 5) || '',
+        is_recurring: res.is_recurring
+      }));
+
+      return { status, reservations: formattedReservations };
+    } catch (err) {
+      console.error('Error checking full day availability:', err);
+      return { status: 'disponivel', reservations: [] };
+    }
+  };
+
+  // Função para carregar disponibilidade do mês para o verificador
+  const loadVerificadorMonthAvailability = async () => {
+    if (!verificadorSala || verificadorLoadingAvailability) return;
+
+    setVerificadorLoadingAvailability(true);
+    
+    const year = verificadorCurrentDate.getFullYear();
+    const month = verificadorCurrentDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const newDayStatuses: DayStatus[] = [];
+    const spaceId = parseInt(verificadorSala);
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      date.setHours(0, 0, 0, 0);
+      
+      // Pular dias passados
+      if (date < today) {
+        newDayStatuses.push({
+          date: format(date, 'yyyy-MM-dd'),
+          status: 'ocupado',
+          reservation: null
+        });
+        continue;
+      }
+
+      try {
+        const result = await checkFullDayAvailability(date, spaceId);
+        
+        newDayStatuses.push({
+          date: format(date, 'yyyy-MM-dd'),
+          status: result.status as 'disponivel' | 'ocupado' | 'ocupado-recorrente' | 'selecionado',
+          reservation: result.reservations.length > 0 ? result.reservations[0] : null
+        });
+      } catch (error) {
+        console.error(`Error checking day ${date.toLocaleDateString()}:`, error);
+      }
+    }
+
+    setVerificadorDayStatuses(newDayStatuses);
+    setVerificadorLoadingAvailability(false);
+  };
+
+  // Função para obter a classe CSS do dia no verificador
+  const getVerificadorDayClassName = (date: Date) => {
+    if (!date || isNaN(date.getTime())) {
+      return 'ocupado';
+    }
+
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dayStatus = verificadorDayStatuses.find(d => d.date === dateStr);
+    
+    if (!dayStatus && date >= new Date()) {
+      return 'disponivel';
+    }
+
+    return dayStatus?.status || 'ocupado';
+  };
+
   // Função para validar a entrada do telefone
   const validatePhoneInput = (value: string): string => {
     // Remove tudo que não é número
@@ -510,6 +698,74 @@ const getDayClassName = (date: Date) => {
     }
   }, [selectedValues.sala, timeRange.start, timeRange.end, currentDate]);
 
+  // Carregar andares do verificador quando campus mudar
+  const [verificadorAndares, setVerificadorAndares] = useState<Floor[]>([]);
+
+  // Carregar andares do verificador quando campus mudar (via API)
+  useEffect(() => {
+    const loadAndares = async () => {
+      if (verificadorCampus) {
+        const building = buildings.find(b => b.name === verificadorCampus);
+        if (building) {
+          try {
+            const floorsData = await api.get(`/api/buildings/${building.id}/floors/`);
+            setVerificadorAndares(floorsData.data || []);
+            setVerificadorAndar(''); // Reset andar quando campus muda
+            setVerificadorSala(''); // Reset sala quando campus muda
+          } catch (err) {
+            console.error('Error loading floors:', err);
+            setVerificadorAndares([]);
+          }
+        }
+      } else {
+        setVerificadorAndares([]);
+        setVerificadorAndar('');
+        setVerificadorSala('');
+      }
+    };
+    loadAndares();
+  }, [verificadorCampus, buildings]);
+
+  // Carregar salas do verificador quando andar mudar (via API)
+  useEffect(() => {
+    const loadSalas = async () => {
+      if (verificadorAndar) {
+        const floor = verificadorAndares.find((f: any) => f.name === verificadorAndar);
+        if (floor) {
+          try {
+            // Buscar salas filtradas pelo andar (floor_id)
+            const spacesData = await api.get('/api/spaces/', {
+              params: { floor: floor.id }
+            });
+            setVerificadorSalas(spacesData.data || []);
+            setVerificadorSala(''); // Reset sala quando andar muda
+          } catch (err) {
+            console.error('Error loading spaces:', err);
+            setVerificadorSalas([]);
+          }
+        }
+      } else {
+        setVerificadorSalas([]);
+        setVerificadorSala('');
+      }
+    };
+    loadSalas();
+  }, [verificadorAndar, verificadorAndares]);
+
+  // Carregar disponibilidade quando sala ou mês mudar no verificador
+  useEffect(() => {
+    if (verificadorSala) {
+      loadVerificadorMonthAvailability();
+    }
+  }, [verificadorSala, verificadorCurrentDate]);
+
+  // Recarregar disponibilidade quando o período mudar
+  useEffect(() => {
+    if (verificadorSala) {
+      loadVerificadorMonthAvailability();
+    }
+  }, [verificadorPeriodo]);
+
   // Replace API calls with dummy data
   useEffect(() => {
     const storedProfile = localStorage.getItem('userProfile');
@@ -553,7 +809,7 @@ const getDayClassName = (date: Date) => {
           block: 'end'
         });
       }
-    }, 300); // Aumentado para 300ms
+    }, 800); // Aumentado para 300ms
   };
 
   // Adicionar um useEffect para monitorar mudanças que devem triggar o scroll
@@ -571,6 +827,56 @@ const getDayClassName = (date: Date) => {
     } else {
       // Se estiver fechado, abre
       setShowNovoAgendamento(true);
+    }
+  };
+
+  // Função para abrir novo agendamento com dados do verificador
+  const handleReservarFromVerificador = async () => {
+    try {
+      setShowVerificador(false); // Fecha o verificador
+      setShowNovoAgendamento(true);
+      setAgendamentoStep('andar'); // Começa na etapa de andar
+      setIsEditing(false);
+
+      // Encontrar o campus pelo nome
+      const building = buildings.find(b => b.name === verificadorCampus);
+      const campusName = building?.name || verificadorCampus;
+
+      // Setar todos os valores
+      setSelectedValues({
+        campus: campusName,
+        andar: verificadorAndar,
+        sala: verificadorSala
+      });
+
+      // Resetar horário para o usuário preencher
+      setTimeRange({ start: '', end: '' });
+
+      // Setar a data selecionada no novo agendamento
+      if (verificadorSelectedDate) {
+        setSelectedDate({
+          date: verificadorSelectedDate,
+          isAvailable: true
+        });
+
+        // Formatar data para o BookingDetails
+        const formattedDate = format(verificadorSelectedDate, 'yyyy-MM-dd');
+        setBookingDetails(prev => ({
+          ...prev,
+          campus: campusName,
+          andar: verificadorAndar,
+          sala: verificadorSala,
+          data: formattedDate,
+          horario: { inicio: '', fim: '' } // Deixar vazio para o usuário preencher
+        }));
+      }
+
+      // Scroll para a seção de novo agendamento
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    } catch (error) {
+      console.error('Error opening booking from verificador:', error);
     }
   };
 
@@ -1205,8 +1511,221 @@ const getDayClassName = (date: Date) => {
             <img src={PlusIcon} alt="Adicionar" className="plus-icon" />
             <span className="desktop-only">Agendar</span>
           </button>
+<<<<<<< HEAD
         </div>
 
+=======
+          <button className="verificar-button" onClick={() => setShowVerificador(!showVerificador)}>
+            <span>Verificar</span>
+          </button>
+        </div>
+
+        {/* Modal do Verificador */}
+        {showVerificador && (
+          <div className="verificador-modal">
+            <div className="verificador-content">
+              <div className="verificador-header">
+                <h3>Verificar Disponibilidade</h3>
+                <button className="verificador-close" onClick={() => setShowVerificador(false)}>×</button>
+              </div>
+
+              <div className="verificador-dropdowns">
+                <div className="verificador-dropdown-group">
+                  <label>Campus:</label>
+                  <select 
+                    value={verificadorCampus} 
+                    onChange={(e) => {
+                      setVerificadorCampus(e.target.value);
+                      setVerificadorAndar('');
+                      setVerificadorSala('');
+                      setVerificadorDayStatuses([]);
+                    }}
+                  >
+                    <option value="">Selecione um campus</option>
+                    {dummyBuildings.map(building => (
+                      <option key={building.id} value={building.name}>{building.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="verificador-dropdown-group">
+                  <label>Andar:</label>
+                  <select 
+                    value={verificadorAndar} 
+                    onChange={(e) => {
+                      setVerificadorAndar(e.target.value);
+                      setVerificadorSala('');
+                      setVerificadorDayStatuses([]);
+                    }}
+                    disabled={!verificadorCampus}
+                  >
+                    <option value="">Selecione um andar</option>
+                    {verificadorAndares.map((floor: any) => (
+                      <option key={floor.id} value={floor.name}>{floor.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="verificador-dropdown-group">
+                  <label>Sala:</label>
+                  <select 
+                    value={verificadorSala} 
+                    onChange={(e) => setVerificadorSala(e.target.value)}
+                    disabled={!verificadorAndar}
+                  >
+                    <option value="">Selecione uma sala</option>
+                    {verificadorSalas.map((sala: any) => (
+                      <option key={sala.id} value={sala.id.toString()}>{sala.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="verificador-dropdown-group">
+                  <label>Período:</label>
+                  <select 
+                    value={verificadorPeriodo} 
+                    onChange={(e) => {
+                      setVerificadorPeriodo(e.target.value as 'matutino' | 'vesperino' | 'noturno' | '');
+                      setVerificadorDayStatuses([]);
+                    }}
+                    disabled={!verificadorSala}
+                  >
+                    <option value="">Todos os períodos</option>
+                    <option value="matutino">Matutino (7:00 - 12:00)</option>
+                    <option value="vesperino">Vesperino (13:00 - 18:00)</option>
+                    <option value="noturno">Noturno (18:30 - 22:00)</option>
+                  </select>
+                </div>
+              </div>
+
+              {verificadorSala && (
+                <div className="verificador-calendar">
+                  <div className="calendar-navigation">
+                    <button 
+                      className="calendar-nav prev"
+                      onClick={() => setVerificadorCurrentDate(new Date(verificadorCurrentDate.getFullYear(), verificadorCurrentDate.getMonth() - 1, 1))}
+                    >
+                      <span className="back-icon">←</span>
+                    </button>
+                    <span className="month-title">
+                      {verificadorCurrentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                    </span>
+                    <button 
+                      className="calendar-nav next"
+                      onClick={() => setVerificadorCurrentDate(new Date(verificadorCurrentDate.getFullYear(), verificadorCurrentDate.getMonth() + 1, 1))}
+                    >
+                      <span className="arrow-icon">→</span>
+                    </button>
+                  </div>
+
+                  {verificadorLoadingAvailability ? (
+                    <p className="loading">Carregando disponibilidade...</p>
+                  ) : (
+                    <div className="calendar-grid">
+                      <DatePicker
+                        selected={verificadorCurrentDate}
+                        onChange={() => {}}
+                        minDate={new Date()}
+                        inline
+                        renderDayContents={(day: number, date: Date) => (
+                          <div
+                            className={`day-wrapper ${getVerificadorDayClassName(date)}`}
+                            onClick={() => {
+                              setVerificadorSelectedDate(date);
+                            }}
+                            onMouseEnter={() => {
+                              const dayStatus = verificadorDayStatuses.find(d => d.date === format(date, 'yyyy-MM-dd'));
+                              if (dayStatus && (dayStatus.status === 'ocupado' || dayStatus.status === 'ocupado-recorrente')) {
+                                setVerificadorHoveredDay(format(date, 'yyyy-MM-dd'));
+                                // Buscar todas as reservas para este dia
+                                const spaceId = parseInt(verificadorSala);
+                                checkFullDayAvailability(date, spaceId).then(result => {
+                                  setVerificadorHoveredReservations(result.reservations);
+                                });
+                              }
+                            }}
+                            onMouseLeave={() => {
+                              setVerificadorHoveredDay(null);
+                              setVerificadorHoveredReservations([]);
+                            }}
+                            style={{
+                              cursor: 'pointer',
+                              pointerEvents: 'auto'
+                            }}
+                          >
+                            <span>{day}</span>
+                            {verificadorSelectedDate && format(verificadorSelectedDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd') && (
+                              <span className="selected-indicator">✓</span>
+                            )}
+                            {verificadorHoveredDay === format(date, 'yyyy-MM-dd') && verificadorHoveredReservations.length > 0 && (
+                              <div className="reservation-tooltip">
+                                {verificadorHoveredReservations.map((res: any, idx: number) => (
+                                  <div key={idx}>
+                                    <div className="tooltip-item">
+                                      <strong>Usuário:</strong> {res.user_name || 'Usuário'}
+                                    </div>
+                                    <div className="tooltip-item">
+                                      <strong>Horário:</strong> {res.start_time && res.end_time ? `${res.start_time} - ${res.end_time}` : 'Dia inteiro'}
+                                    </div>
+                                    <div className="tooltip-item">
+                                      <strong>Telefone:</strong> {res.phone || 'N/A'}
+                                    </div>
+                                    <div className="tooltip-item">
+                                      <strong>Curso:</strong> {res.course || 'N/A'}
+                                    </div>
+                                    {idx < verificadorHoveredReservations.length - 1 && (
+                                      <div className="tooltip-divider"></div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        monthsShown={1}
+                        shouldCloseOnSelect={false}
+                        calendarClassName="verificador-datepicker"
+                        dayClassName={(date: Date) => getVerificadorDayClassName(date)}
+                        renderCustomHeader={() => <></>}
+                      />
+                    </div>
+                  )}
+
+                  <div className="verificador-legend">
+                    <div className="legend-item">
+                      <span className="legend-dot disponivel"></span>
+                      <span>Disponível</span>
+                    </div>
+                    <div className="legend-item">
+                      <span className="legend-dot ocupado"></span>
+                      <span>Ocupado</span>
+                    </div>
+                    <div className="legend-item">
+                      <span className="legend-dot ocupado-recorrente"></span>
+                      <span>Recorrente</span>
+                    </div>
+                  </div>
+
+                  {verificadorSelectedDate && (
+                    <div className="verificador-actions">
+                      <button 
+                        className="reservar-button"
+                        onClick={handleReservarFromVerificador}
+                      >
+                        Reservar
+                      </button>
+                      <span className="selected-date-info">
+                        Data selecionada: {format(verificadorSelectedDate, 'dd/MM/yyyy')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+>>>>>>> fb1f52f845904ce0a210224c18415066d4f746cb
         <section className="proximos-agendamentos">
           <h2>Meus agendamentos</h2>
           {loading ? (
@@ -1401,7 +1920,7 @@ const getDayClassName = (date: Date) => {
             <h2>
               {isEditing && isConclusion ? 'Edição Concluída' :
               isEditing && !isConclusion ? 'Editar Agendamento' :
-              !isEditing && isConclusion ? 'Agendamento Pendente!' :
+              !isEditing && isConclusion ? 'Agendamento Solicitado!' :
               'Novo Agendamento'}
             </h2>
             {agendamentoStep === 'campus' ? (
