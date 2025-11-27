@@ -1511,10 +1511,6 @@ const getDayClassName = (date: Date) => {
             <img src={PlusIcon} alt="Adicionar" className="plus-icon" />
             <span className="desktop-only">Agendar</span>
           </button>
-<<<<<<< HEAD
-        </div>
-
-=======
           <button className="verificar-button" onClick={() => setShowVerificador(!showVerificador)}>
             <span>Verificar</span>
           </button>
@@ -1725,7 +1721,6 @@ const getDayClassName = (date: Date) => {
           </div>
         )}
 
->>>>>>> fb1f52f845904ce0a210224c18415066d4f746cb
         <section className="proximos-agendamentos">
           <h2>Meus agendamentos</h2>
           {loading ? (
