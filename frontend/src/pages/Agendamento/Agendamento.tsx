@@ -1538,7 +1538,7 @@ const getDayClassName = (date: Date) => {
                     }}
                   >
                     <option value="">Selecione um campus</option>
-                    {dummyBuildings.map(building => (
+                    {buildings.map(building => (
                       <option key={building.id} value={building.name}>{building.name}</option>
                     ))}
                   </select>
