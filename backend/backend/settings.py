@@ -127,7 +127,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
-    Path(r'F:\sist-ger-sala\frontend\src\assets'),
+    # Path(r'F:\sist-ger-sala\frontend\src\assets'),
 ]
 
 # Media files configuration
