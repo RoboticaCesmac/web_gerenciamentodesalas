@@ -28,6 +28,8 @@ DEBUG = os.getenv('DEBUG')
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
+CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", default=",").split(",")
+
 
 # Application definition
 
