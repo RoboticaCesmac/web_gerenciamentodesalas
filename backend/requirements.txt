@@ -8,3 +8,4 @@ pytz==2024.1
 cryptography==41.0.7
 sqlparse==0.4.4
 django-jazzmin==3.0.2
+gunicorn==25.1.0
