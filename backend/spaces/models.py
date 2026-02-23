@@ -42,6 +42,11 @@ class FloorPlan(models.Model):
 
     def __str__(self):
         return f"{self.building.name} - {self.name}"
+    
+    def delete(self, *args, **kwargs):
+        if self.plan_image:
+            self.plan_image.delete(save=False)
+        super().delete(*args, **kwargs)
 
 class Space(models.Model):
     name = models.CharField('Nome', max_length=100)
