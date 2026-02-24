@@ -29,8 +29,8 @@ import logoImg from '../../assets/logo-CESMAC-redux.svg';
 import Campusico from '../../assets/Campus-ico.svg';
 import userImg from '../../assets/Icones-Perfil.svg';
 import PingIcon from '../../assets/ping.svg';
-import PlusIcon from '../../assets/Plus.svg';
-import RightArrowIcon from '../../assets/Right-Arrow.svg';
+import PlusIcon from '../../assets/plus.svg';
+import RightArrowIcon from '../../assets/right-arrow.svg';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { ptBR } from 'date-fns/locale';
@@ -38,10 +38,10 @@ import { format } from 'date-fns';
 import LogoutIcon from '../../assets/Sair.svg';
 import Relogio from '../../assets/Relogio.svg';
 import Calendario from '../../assets/Calendario.svg';
-import ChapeuIcon from '../../assets/chapeu.svg';
-import TelefoneIcon from '../../assets/telefone.svg';
+import ChapeuIcon from '../../assets/Chapeu.svg';
+import TelefoneIcon from '../../assets/Telefone.svg';
 import MensagemIcon from '../../assets/Icones-Mensagem.svg';
-import CheckIcon from '../../assets/check.svg';
+import CheckIcon from '../../assets/Check.svg';
 import BigCheckIcon from '../../assets/Big-Check.svg';
 import { 
     api,
