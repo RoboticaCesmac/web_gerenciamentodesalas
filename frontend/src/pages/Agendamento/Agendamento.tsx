@@ -888,7 +888,7 @@ const getDayClassName = (date: Date) => {
       
       // Passo 1: Setar campus
       setSelectedValues({
-        campus: reservation.building_name,
+        campus: reservation.building_name || "",
         andar: '',
         sala: ''
       });
@@ -900,7 +900,7 @@ const getDayClassName = (date: Date) => {
       
       setSelectedValues(prev => ({
         ...prev,
-        andar: floorName,
+        andar: floorName || "",
         sala: ''
       }));
 
@@ -953,9 +953,9 @@ const getDayClassName = (date: Date) => {
         }
 
         setBookingDetails({
-          campus: reservation.building_name,
-          andar: floorName,
-          sala: reservation.space_name,
+          campus: reservation.building_name || "",
+          andar: floorName || "",
+          sala: reservation.space_name || "",
           data: `${reservation.recurring_start_date || ''} até ${reservation.recurring_end_date || ''}`,
           horario: { inicio: '', fim: '' },
           curso: '',
@@ -1000,9 +1000,9 @@ const getDayClassName = (date: Date) => {
         });
 
         setBookingDetails({
-          campus: reservation.building_name,
-          andar: floorName,
-          sala: reservation.space_name,
+          campus: reservation.building_name || "",
+          andar: floorName || "",
+          sala: reservation.space_name || "",
           data: date.toLocaleDateString(),
           horario: {
             inicio: startTime,
@@ -1463,10 +1463,10 @@ const getDayClassName = (date: Date) => {
         if (!reservation || !reservation.id) return null;
         
         return (
-            <div key={reservation.id} className={`historico-card ${mapStatusToClassName(reservation.status)} ${!showNovoAgendamento ? 'full-width' : ''}`}>
+            <div key={reservation.id} className={`historico-card ${mapStatusToClassName(reservation.status || "")} ${!showNovoAgendamento ? 'full-width' : ''}`}>
                 <div className="historico-tags">
-                    <span className={`tag tag-status ${mapStatusToClassName(reservation.status)}`}>
-                        {getStatusText(reservation.status)}
+                    <span className={`tag tag-status ${mapStatusToClassName(reservation.status || "")}`}>
+                        {getStatusText(reservation.status || "")}
                     </span>
                     {reservation.start_time && reservation.end_time && (
                         <span className="tag tag-time">
@@ -1874,10 +1874,10 @@ const getDayClassName = (date: Date) => {
                     const date = reservation.date ? new Date(reservation.date).toLocaleDateString() : 'N/A';
                     
                     return (
-                        <div key={reservation.id} className={`historico-card ${mapStatusToClassName(reservation.status)} ${!showNovoAgendamento ? 'full-width' : ''}`}>
+                        <div key={reservation.id} className={`historico-card ${mapStatusToClassName(reservation.status || "")} ${!showNovoAgendamento ? 'full-width' : ''}`}>
                             <div className="historico-tags">
-                                <span className={`tag tag-status ${mapStatusToClassName(reservation.status)}`}>
-                                    {getStatusText(reservation.status)}
+                                <span className={`tag tag-status ${mapStatusToClassName(reservation.status || "")}`}>
+                                    {getStatusText(reservation.status || "")}
                                 </span>
                                 <span className="tag tag-time">
                                     {`${startTime} - ${endTime}`}

@@ -75,23 +75,23 @@ export const getSpaces = async (buildingId: number, floorId: number) => {
     return response.data;
 };
 
-export interface ReservationData {
-  space: number;
-  date?: string;
-  start_time?: string;
-  end_time?: string;
-  description: string;
-  status?: string;
-  is_recurring?: boolean;
-  recurring_days?: string[];
-  recurring_start_date?: string;
-  recurring_end_date?: string;
-  recurring_horarios?: {
-    [key: string]: { inicio: string; fim: string };
-  };
-  phone?: string; // ADICIONE ESTE CAMPO
-  course?: string; // ADICIONE ESTE CAMPO
-}
+// export interface ReservationData {
+//   space: number;
+//   date?: string;
+//   start_time?: string;
+//   end_time?: string;
+//   description: string;
+//   status?: string;
+//   is_recurring?: boolean;
+//   recurring_days?: string[];
+//   recurring_start_date?: string;
+//   recurring_end_date?: string;
+//   recurring_horarios?: {
+//     [key: string]: { inicio: string; fim: string };
+//   };
+//   phone?: string; // ADICIONE ESTE CAMPO
+//   course?: string; // ADICIONE ESTE CAMPO
+// }
 
 export const createReservation = async (data: ReservationData) => {
   try {

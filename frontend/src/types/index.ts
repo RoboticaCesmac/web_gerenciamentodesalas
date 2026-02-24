@@ -20,17 +20,21 @@ export interface Space {
 
 export interface Reservation {
   id: number;
+  title?: string;
+  building?: number
   space: number;
-  space_name: string;
-  building_name: string;
-  floor_name: string;
+  start_datetime?: string;
+  end_datetime?:string;
+  space_name?: string;
+  building_name?: string;
+  floor_name?: string;
   date?: string;
   start_time?: string;
   end_time?: string;
   description?: string;
-  status: 'pending' | 'confirmado' | 'canceled' | 'completed';
-  user_email: string;
-  capacity: number;
+  status?: 'pending' | 'confirmado' | 'canceled' | 'completed';
+  user_email?: string;
+  capacity?: number;
   is_recurring?: boolean;
   recurring_days?: string;
   recurring_start_date?: string;
