@@ -1,0 +1,69 @@
+.nav-header img {
+    margin: 0;
+    padding: 0;
+    vertical-align: middle;
+    max-height: 34px;
+}
+
+.brand-image {
+    float: left;
+    line-height: .8;
+    max-height: 34px;
+    width: auto;
+    margin-left: .8rem;
+    margin-right: .5rem;
+    margin-top: -3px;
+    box-shadow: none !important;
+}
+
+.brand-link {
+    padding: 0.8125rem 0.5rem;
+    line-height: 1;
+}
+
+.brand-text{
+color: aliceblue;
+font-weight: bold !important;
+}
+
+.field-preview_image {
+    margin-top: 10px;
+}
+
+.field-preview_image img {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    background: #fff;
+}
+
+.form-row .file-upload {
+    margin-bottom: 10px;
+}
+
+#preview_image_wrapper {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    margin-top: 10px;
+    background: #fff;
+    display: inline-block;
+}
+
+.floor-preview-container {
+    margin: 10px 0;
+}
+
+.floor-preview-container .help {
+    color: #666;
+    font-size: 0.8em;
+    margin-top: 5px;
+}
+
+#map-container {
+    background: #f8f9fa;
+}
+
+#location-marker:hover {
+    background-color: #0056b3;
+}
