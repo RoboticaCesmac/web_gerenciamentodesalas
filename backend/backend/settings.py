@@ -28,7 +28,7 @@ DEBUG = os.getenv('DEBUG')
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
-CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", default=",").split(",")
+CSRF_TRUSTED_ORIGINS = os.environ.get("CORS_CSRF_TRUSTED_ORIGINS", default=",").split(",")
 
 
 # Application definition
@@ -225,9 +225,7 @@ JAZZMIN_UI_TWEAKS = {
     }
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Vite default port
-]
+CORS_ALLOWED_ORIGINS = os.environ.get("CORS_CSRF_TRUSTED_ORIGINS", default=",").split(",")
 
 CORS_ALLOW_CREDENTIALS = True
 
